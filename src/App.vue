@@ -1,33 +1,33 @@
 <template>
   <div id="app">
-    <Head></Head>
-    <Main></Main>
-    <Foot></Foot>
+    <nav>
+      <router-link to="/">Home</router-link> |
+      <router-link to="/about">About</router-link> |
+      <router-link to="/videoDetail">视频</router-link>
+    </nav>
+    <router-view/>
   </div>
 </template>
 
-<script>
-import Vue from 'vue'
-import VueCoreVideoPlayer from 'vue-core-video-player'
- 
-import Head from './components/Head.vue'
-import Main from './components/Main.vue'
-import Foot from './components/Foot.vue'
+<style lang="scss">
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+}
 
-Vue.use(VueCoreVideoPlayer, {
-  lang: 'zh-CN'
-})
+nav {
+  padding: 30px;
 
-export default {
-  name: 'App',
-  components: {
-    Head,
-    Main,
-    Foot
+  a {
+    font-weight: bold;
+    color: #2c3e50;
+
+    &.router-link-exact-active {
+      color: #42b983;
+    }
   }
 }
-</script>
-
-<style>
-
 </style>
