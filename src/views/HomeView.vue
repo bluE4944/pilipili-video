@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <a-carousel autoplay>
+    <a-carousel autoplay class="w-50">
       <div><h3>1</h3></div>
       <div><h3>2</h3></div>
       <div><h3>3</h3></div>
@@ -18,7 +18,6 @@ export default {
   name: 'HomeView',
   components: {
     HelloWorld,
-    Carousel
   }
 }
 </script>

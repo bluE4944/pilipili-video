@@ -7,7 +7,7 @@
             <router-link class="p-2 pt-1" to="/about">About</router-link>
             <router-link class="p-2 pt-1" to="/videoDetail">视频</router-link>
           </nav>
-
+        <my-head/>
       </a-affix>
     <router-view/>
 
@@ -42,10 +42,10 @@ nav {
 
   a {
     font-weight: bold;
-    color: #2c3e50;
+    color: #546497;
 
     &.router-link-exact-active {
-      color: #35383b;
+      color: #207bd0;
     }
   }
 }

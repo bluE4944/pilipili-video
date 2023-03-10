@@ -1,20 +1,20 @@
 <template>
   <div>
-    <div class="logo" />
     <a-menu
-        theme="dark"
         mode="horizontal"
-        :default-selected-keys="['2']"
-        :style="{ lineHeight: '64px' }"
+        :default-selected-keys="['1']"
+        :style="{ lineHeight: '50px',background: 'none',fontWeight: 'bold',fontSize: '16px' }"
+        class="mb-2"
     >
+      <a-menu-item key="0" ><router-link to="/"><img alt="PILIPILI logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-menu-item>
       <a-menu-item key="1">
-        nav 1
+        <router-link class="link" to="/">首页</router-link>
       </a-menu-item>
       <a-menu-item key="2">
-        nav 2
+        <router-link class="link" to="/about">About</router-link>
       </a-menu-item>
-      <a-menu-item key="3">
-        nav 3
+      <a-menu-item  key="3">
+        <router-link class="link" to="/videoDetail">视频</router-link>
       </a-menu-item>
     </a-menu>
   </div>
@@ -43,7 +43,13 @@
     }
   }
 </script>
-<style>
+<style >
+.ant-menu-horizontal{
+  border-bottom: none;
+}
+.link{
+  text-decoration: none;
+}
 </style>
 
 
