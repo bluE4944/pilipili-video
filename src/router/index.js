@@ -1,12 +1,18 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import Main from "@/components/Main";
 
 Vue.use(VueRouter)
 
 const routes = [
   {
     path: '/',
+    name: 'videoDetail',
+    component: HomeView
+  },
+  {
+    path: '/home',
     name: 'home',
     component: HomeView
   },

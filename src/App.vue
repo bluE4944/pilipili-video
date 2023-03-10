@@ -1,25 +1,42 @@
 <template>
-  <div id="app">
-    <nav>
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link> |
-      <router-link to="/videoDetail">视频</router-link>
-    </nav>
+  <div id="app" class="">
+      <a-affix :offset-top="top">
+          <nav class="p-3 flex-column justify-content-center ">
+              <router-link to="/"><img alt="PILIPILI logo" class="logo pr-3 " src="./assets/PILIPILI-logo-full.png"></router-link>
+            <router-link class="p-2 pt-1" to="/">Home</router-link>
+            <router-link class="p-2 pt-1" to="/about">About</router-link>
+            <router-link class="p-2 pt-1" to="/videoDetail">视频</router-link>
+          </nav>
+      </a-affix>
     <router-view/>
+
   </div>
 </template>
+
+<script>
+  import { Menu } from 'ant-design-vue';
+  export default {
+    components:{
+      Menu,
+    },
+    data() {
+      return {
+        current: ['home'],
+        top: 10,
+      };
+    },
+  };
+</script>
 
 <style lang="scss">
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
 }
 
 nav {
-  padding: 30px;
 
   a {
     font-weight: bold;
@@ -30,4 +47,8 @@ nav {
     }
   }
 }
+    .logo{
+
+    }
+
 </style>
