@@ -62,7 +62,7 @@ export default {
       movieList: DATA,
       recommendList: [DATA[2], DATA[4], DATA[1], DATA[0]],
       currentMovie: movie,
-      url: require("D:/录制/bandicam 2019-05-22 22-45-44-022.mp4")
+      url: require("../assets/sparkle_your_name_am720p.mp4")
     }
   },
   methods: {

@@ -2,11 +2,12 @@
   <div id="app" class="">
       <a-affix :offset-top="top">
           <nav class="p-3 flex-column justify-content-center ">
-              <router-link to="/"><img alt="PILIPILI logo" class="logo pr-3 " src="./assets/PILIPILI-logo-full.png"></router-link>
-            <router-link class="p-2 pt-1" to="/">Home</router-link>
+            <router-link to="/"><img alt="PILIPILI logo" class="logo pr-3 " src="./assets/PILIPILI-logo-full.png"></router-link>
+            <router-link class="p-2 pt-1" to="/">首页</router-link>
             <router-link class="p-2 pt-1" to="/about">About</router-link>
             <router-link class="p-2 pt-1" to="/videoDetail">视频</router-link>
           </nav>
+
       </a-affix>
     <router-view/>
 
@@ -14,15 +15,16 @@
 </template>
 
 <script>
-  import { Menu } from 'ant-design-vue';
+  import myHead from "@/components/Head";
+
   export default {
+    isSubMenu: false,
     components:{
-      Menu,
+      myHead
     },
     data() {
       return {
-        current: ['home'],
-        top: 10,
+        top: 5,
       };
     },
   };
@@ -43,7 +45,7 @@ nav {
     color: #2c3e50;
 
     &.router-link-exact-active {
-      color: #42b983;
+      color: #35383b;
     }
   }
 }
