@@ -2,6 +2,10 @@ body {
   background-color: #fafafa;
 }
 
+.bg-color{
+  background-color: #fafafa;
+}
+
 #app .bg-info {
   background-color: #fff !important;
 }

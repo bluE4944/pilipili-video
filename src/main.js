@@ -7,6 +7,9 @@ import VueCoreVideoPlayer from 'vue-core-video-player';
 import Antd from "ant-design-vue";
 import 'ant-design-vue/dist/antd.css';
 
+//字体
+import './assets/font/local-fonts.css'
+
 // app.js
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'

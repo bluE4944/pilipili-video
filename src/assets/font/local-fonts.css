@@ -1,0 +1,36 @@
+/* 得意黑 斜体 字体 */
+@font-face {
+    font-family: 'smileySans';
+    src: url('./smiley-sans-v1.1.1/SmileySans-Oblique.ttf');
+}
+
+/* 鸿蒙 黑 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Black';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Black.ttf');
+}
+/* 鸿蒙 加粗 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Bold';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Bold.ttf');
+}
+/* 鸿蒙 细 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Light';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Light.ttf');
+}
+/* 鸿蒙 中等 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Medium';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Medium.ttf');
+}
+/* 鸿蒙 中等 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Regular';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Regular.ttf');
+}
+/* 鸿蒙 中等 字体 */
+@font-face {
+    font-family: 'HarmonyOS_Sans_Thin';
+    src: url('./HarmonyOS_Sans/HarmonyOS_Sans_Thin.ttf');
+}

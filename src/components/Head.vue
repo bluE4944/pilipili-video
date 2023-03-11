@@ -3,18 +3,18 @@
     <a-menu
         mode="horizontal"
         :default-selected-keys="['1']"
-        :style="{ lineHeight: '50px',background: 'none',fontWeight: 'bold',fontSize: '16px' }"
-        class="mb-2"
+        :style="menuStyle"
+        class="mb-3"
     >
-      <a-menu-item key="0" ><router-link to="/"><img alt="PILIPILI logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-menu-item>
+      <a-menu-item key="0"><router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-menu-item>
       <a-menu-item key="1">
-        <router-link class="link" to="/">首页</router-link>
+        <router-link class="link" to="/"><span>首页</span></router-link>
       </a-menu-item>
-      <a-menu-item key="2">
-        <router-link class="link" to="/about">About</router-link>
-      </a-menu-item>
-      <a-menu-item  key="3">
+      <a-menu-item  key="2" >
         <router-link class="link" to="/videoDetail">视频</router-link>
+      </a-menu-item>
+      <a-menu-item key="3">
+        <router-link class="link" to="/about">About</router-link>
       </a-menu-item>
     </a-menu>
   </div>
@@ -36,6 +36,13 @@
     },
     data () {
       return {
+        menuStyle:{
+          fontWeight: 'bold',
+          fontSize: '17px',
+          background: '#fafafa',
+          border: 0,
+          padding: '0 10px',
+        },
         collapsed: false
       }
     },
@@ -43,13 +50,23 @@
     }
   }
 </script>
-<style >
-.ant-menu-horizontal{
-  border-bottom: none;
-}
-.link{
-  text-decoration: none;
-}
+<style lang="scss" >
+  ::v-deep .ant-menu-horizontal{
+    border-bottom: 0 !important;
+  }
+
+  ::v-deep .ant-menu-item{
+    padding: 0 5px !important;
+  }
+
+  .link{
+    text-decoration: none;
+  }
+
+  .link:hover{
+    text-decoration: none;
+  }
+
 </style>
 
 
