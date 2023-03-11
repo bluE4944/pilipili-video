@@ -1,13 +1,16 @@
 <template>
   <div>
-    <a-row type="flex" justify="space-between" align="middle">
-
+    <a-space :size="10" class="mt-2">
       <router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link>
+      <a-avatar :size="35" :src="src"/>
+      <span>{{user.username}}</span>
+    </a-space>
       <a-menu
-              mode="horizontal"
+              mode="inline"
               :default-selected-keys="['1']"
               :style="menuStyle"
               class="mb-1"
+              :inline-collapsed="collapsed"
       >
         <a-menu-item key="1">
           <router-link class="link" to="/"><span>首页</span></router-link>
@@ -20,16 +23,6 @@
         </a-menu-item>
       </a-menu>
 
-      <a-col :span="1" :lg="2" :sm="5" class="mr-3">
-        <a-space>
-          <a-avatar :size="35" :src="src"/>
-          <span>{{user.username}}</span>
-        </a-space>
-
-
-      </a-col>
-
-    </a-row>
   </div>
 </template>
 <script>
@@ -37,7 +30,7 @@
   import { Menu, Layout, Icon, Breadcrumb } from 'ant-design-vue' // 按需引入组件并注册
   Vue.use(Layout)
   export default {
-    name: 'Head',
+    name: 'MobileHead',
     components: {
       'a-menu': Menu,
       'a-icon': Icon,
@@ -52,9 +45,9 @@
         menuStyle:{
           fontWeight: 'bold',
           fontSize: '17px',
+          background: '#fafafa',
           border: 0,
           padding: '0 10px',
-          background: 'none',
         },
         collapsed: false,
         user:{
@@ -64,6 +57,9 @@
       }
     },
     methods: {
+      toggleCollapsed() {
+        this.collapsed = !this.collapsed;
+      },
     }
   }
 </script>

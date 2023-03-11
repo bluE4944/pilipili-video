@@ -1,7 +1,7 @@
 <template>
-    <b-container class="bv-example-row main">
-      <b-row>
-        <b-col cols="8">
+    <div class="main mt-5 pt-5">
+      <a-row>
+        <a-col push="2" span="14" >
           <div id="vue-core-video-player-box" class="example-player">
             <vue-core-video-player :cover="currentMovie.cover3" :src="url" :auto-play="false"></vue-core-video-player>
           </div>
@@ -16,20 +16,24 @@
               </b-button>
             </div>
           </div>
-          <div class="recommend-list">
-            <RecommendedItem v-for="movie in recommendList" :key="movie.cover" :item="movie"></RecommendedItem>
-          </div>
-          <div class="thanks">
-            ❤ Video Source via Makoto Shinkai and Stephen Chow's Movies
-          </div>
-        </b-col>
-        <b-col cols="4" class="play-list">
+        </a-col>
+        <a-col push="3" span="5" v-if="isPc" class="play-list">
           <h2>Play List</h2>
           <MovieItem v-for="movie in movieList" :key="movie.cover" :item="movie"></MovieItem>
-        </b-col>
-      </b-row>
+        </a-col>
 
-    </b-container>
+
+      </a-row>
+      <a-row>
+        <a-col push="2" span="21">
+          <div  class="recommend-list">
+            <RecommendedItem v-for="movie in recommendList" :key="movie.cover" :item="movie"></RecommendedItem>
+          </div>
+        </a-col>
+
+      </a-row>
+
+    </div>
 </template>
 
 <script>
@@ -49,7 +53,6 @@ if (location.search) {
   })
 }
 
-
 export default {
   name: 'Main',
   components: {
@@ -62,7 +65,9 @@ export default {
       movieList: DATA,
       recommendList: [DATA[2], DATA[4], DATA[1], DATA[0]],
       currentMovie: movie,
-      url: require("../assets/sparkle_your_name_am720p.mp4")
+      url: require("../assets/sparkle_your_name_am720p.mp4"),
+      isPc: true,
+      mainClassName: 'main mt-5 pt-5',
     }
   },
   methods: {
@@ -70,13 +75,15 @@ export default {
       window.open('https://github.com/core-player/vue-core-video-player-examples')
     }
   },
+  created() {
+    this.isPc = this.$store.isPc;
+  }
 }
 </script>
 
 <style>
   .example-player {
-    position: relative;
-    height: 410px;
+    height: 710px;
     background-color: #000;
     font-weight: normal;
   }
@@ -109,12 +116,6 @@ export default {
     padding-top: 40px;
     padding-bottom: 40px;
     border-top: 1px solid #ddd;
-  }
-  .thanks {
-    padding: 20px 0 40px;
-    color: rgba(0, 0, 0, .25);
-    font-size: 13px;
-    text-align: center;
   }
   .recommend-list:after{
     content: '';

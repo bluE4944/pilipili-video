@@ -1,12 +1,15 @@
 <template>
-  <div class="about pt-2 bg-about">
+  <div class="about pt-5 bg-about">
 
-    <a-row type="flex" justify="space-around" align="middle">
-      <a-card class="card w-75 " >
+    <a-row class="h-100" type="flex" justify="space-around" align="middle">
+      <a-card class="card w-75 h-75">
         <a-space direction="vertical">
           <img alt="logo" src="../assets/pilipili-logo.png">
           <h2> pilipili-video </h2>
+          <h4> B站，人称小P站 </h4>
+          <h5>为了能在家里PB切换，我制作了这个视频网站，当然可能不只视频功能，还有一些个人相关的功能，具体看我的后续吧...</h5>
           <h4> author: Liam</h4>
+          <h4> 贡献: 渔关</h4>
           <h4>
             <a-space :size="8">
               <a-icon type="github" @click="open(githubUrl)"/>
@@ -50,7 +53,7 @@
   }
   .bg-about{
     background-image:linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%);
-    height: 95vh;
+    height: 100vh;
     position: absolute;
   }
 
