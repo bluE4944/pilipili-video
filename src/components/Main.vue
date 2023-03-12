@@ -1,30 +1,27 @@
 <template>
-    <div class="main mt-5 pt-5">
+    <div class="main mt-sm-2 mt-xl-5 pt-xl-5 pt-sm-2 pt-lg-2 ">
       <a-row>
-        <a-col push="2" span="14" >
-          <div id="vue-core-video-player-box" class="example-player">
-            <vue-core-video-player :cover="currentMovie.cover3" :src="url" :auto-play="false"></vue-core-video-player>
+        <a-col :push="videoParam.videoPush" :span="videoParam.videoSpan" >
+          <div id="vue-core-video-player-box" class="example-player" :style="videoStyle" ref="videoPlayerBox">
+            <vue-core-video-player :cover="currentMovie.cover3" :src="currentMovie.source" :auto-play="false"></vue-core-video-player>
           </div>
           <div class="movie-detail">
             <h1 class="title">{{currentMovie.title}}</h1>
             <div class="date">{{currentMovie.author}} - {{currentMovie.date}}</div>
             <div class="desc">{{currentMovie.desc}} </div>
             <div class="btn-wrap">
-              <b-button variant="outline-primary" @click="open">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 20 20" fill="#ff6060"><path d="M5 15a.502.502 0 0 1-.354-.146l-4-4a.5.5 0 0 1 0-.707l4-4a.5.5 0 0 1 .707.707L1.707 10.5l3.646 3.646a.5.5 0 0 1-.354.853zM15 15a.5.5 0 0 1-.354-.853l3.646-3.646-3.646-3.646a.5.5 0 0 1 .707-.707l4 4a.5.5 0 0 1 0 .707l-4 4a.498.498 0 0 1-.354.146zM7.5 15a.5.5 0 0 1-.424-.765l5-8a.5.5 0 0 1 .848.53l-5 8A.5.5 0 0 1 7.5 15z"/></svg>
-                View Code
-              </b-button>
+              <a-button @click="open">
+                <a-icon type="ordered-list" :style="{ fontSize: '17px', color: '#08c'}" class="pb-1"/>
+              </a-button>
             </div>
           </div>
         </a-col>
-        <a-col push="3" span="5" v-if="isPc" class="play-list">
+        <a-col :push="playList.push" :span="playList.span" class="play-list">
           <h2>Play List</h2>
           <MovieItem v-for="movie in movieList" :key="movie.cover" :item="movie"></MovieItem>
         </a-col>
-
-
       </a-row>
-      <a-row>
+      <a-row v-if="isPc">
         <a-col push="2" span="21">
           <div  class="recommend-list">
             <RecommendedItem v-for="movie in recommendList" :key="movie.cover" :item="movie"></RecommendedItem>
@@ -40,7 +37,8 @@
 
 import MovieItem from './MovieItem.vue'
 import RecommendedItem from './Recommended.vue'
-import DATA from '../assets/data'
+import DATA from '../assets/data';
+import {calculateHigh} from '@/components/utils/utils'
 
 let movie = DATA[2];
 
@@ -68,24 +66,59 @@ export default {
       url: require("../assets/sparkle_your_name_am720p.mp4"),
       isPc: true,
       mainClassName: 'main mt-5 pt-5',
+      videoParam: {
+        videoSpan: 14,
+        videoPush: 2,
+      },
+      videoStyle:{
+        height: '32vw',
+      },
+      playList:{
+        push: 3,
+        span: 5,
+      },
     }
+  },
+  watch:{
   },
   methods: {
     open() {
       window.open('https://github.com/core-player/vue-core-video-player-examples')
+    },
+    //初始话视频
+    initVideo() {
+      this.currentMovie.source = this.url;
+      if (!this.isPc) {
+        this.videoParam.videoSpan = 24;
+        this.videoParam.videoPush = 0;
+        this.playList.push = 0;
+        this.playList.span = 24;
+        this.currentMovie.desc = this.currentMovie.desc.substr(0, 150) + '...';
+      }
+    },
+    //重新计算视频高度
+    reCalVideoHeight(){
+      if (!this.isPc) {
+        let videoPlayerBox = this.$refs.videoPlayerBox;
+        this.videoStyle.height = calculateHigh(videoPlayerBox.clientWidth) + 'px';
+        console.log(this.videoStyle.height);
+      }
     }
+  },
+  mounted() {
+    this.reCalVideoHeight();
   },
   created() {
     this.isPc = this.$store.isPc;
+    this.initVideo();
   }
 }
 </script>
 
 <style>
   .example-player {
-    height: 710px;
     background-color: #000;
-    font-weight: normal;
+    min-width: 56vw;
   }
   .movie-detail{
     padding-top: 20px;

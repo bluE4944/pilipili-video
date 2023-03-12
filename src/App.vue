@@ -1,5 +1,6 @@
 <template>
   <div id="app" >
+      <!-- 桌面端 -->
       <a-layout  class="layout" v-if="isPc">
           <a-layout-header :style="{ position: 'fixed', zIndex: 1, width: '100%',background: '#fafafa' }">
               <pc-head />
@@ -12,7 +13,7 @@
           </a-layout-footer>
       </a-layout>
 
-
+      <!-- 移动端 -->
       <a-layout style="min-height: 100vh ; background:#fafafa " v-if="!isPc">
           <a-layout-sider style="background:#fafafa;"
                           v-model="collapsed"
@@ -35,9 +36,6 @@
               </a-layout-footer>
           </a-layout>
       </a-layout>
-
-
-
   </div>
 </template>
 

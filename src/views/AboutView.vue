@@ -1,5 +1,5 @@
 <template>
-  <div class="about pt-5 bg-about">
+  <div class="about mt-sm-1 mt-xl-5 pt-xl-5 pt-sm-1 bg-about">
 
     <a-row class="h-100" type="flex" justify="space-around" align="middle">
       <a-card class="card w-75 h-75">
