@@ -9,6 +9,7 @@
               <router-view class="container-fluid"/>
           </a-layout-content>
           <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
+              <a-divider />
               pilipili-video ©2023 Created by Liam
           </a-layout-footer>
       </a-layout>
@@ -32,6 +33,7 @@
                   <router-view class="container-fluid"/>
               </a-layout-content>
               <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
+                <a-divider/>
                   pilipili-video ©2023 Created by Liam
               </a-layout-footer>
           </a-layout>
@@ -42,6 +44,7 @@
 <script>
   import PcHead from "@/components/Head";
   import MobileHead from "@/components/MobileHead";
+  import {isMobile,isPhone,_isMobile} from "@/components/utils/utils"
 
   export default {
       isSubMenu: false,
@@ -58,11 +61,6 @@
           };
       },
       methods:{
-          _isMobile() {
-              let flag = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i)
-              console.log("flag:",flag);
-              return !!flag;
-          }
       },
       mounted() {
           this.pathName = this.$route.name;
@@ -70,7 +68,10 @@
       },
       created() {
           //pc
-          this.isPc = !this._isMobile();
+          this.isPc = !_isMobile();
+          this.isPc = !isMobile;
+          console.log('isPhone:',isPhone);
+          console.log('isMobile:',isMobile);
           this.$store.isPc = this.isPc;
           console.log('isPc',this.$store.isPc);
       }
@@ -97,6 +98,10 @@
           color: #207bd0;
         }
       }
+    }
+
+    .ant-divider-horizontal{
+        margin: 14px 0;
     }
 
 

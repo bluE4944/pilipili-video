@@ -6,14 +6,19 @@
             <vue-core-video-player :cover="currentMovie.cover3" :src="currentMovie.source" :auto-play="false"></vue-core-video-player>
           </div>
           <div class="movie-detail">
-            <h1 class="title">{{currentMovie.title}}</h1>
-            <div class="date">{{currentMovie.author}} - {{currentMovie.date}}</div>
-            <div class="desc">{{currentMovie.desc}} </div>
-            <div class="btn-wrap">
+            <a-row type="flex" justify="space-between" align="middle">
+              <a-col>
+                <span class="title h3">{{currentMovie.title}}</span> 
+              </a-col>
+            <a-col class="btn-wrap">
               <a-button @click="open">
                 <a-icon type="ordered-list" :style="{ fontSize: '17px', color: '#08c'}" class="pb-1"/>
               </a-button>
-            </div>
+            </a-col>
+          </a-row>
+            <div class="date">{{currentMovie.author}} - {{currentMovie.date}}</div>
+            <div class="desc">{{currentMovie.desc}} </div>
+            
           </div>
         </a-col>
         <a-col :push="playList.push" :span="playList.span" class="play-list">
@@ -93,16 +98,14 @@ export default {
         this.videoParam.videoPush = 0;
         this.playList.push = 0;
         this.playList.span = 24;
-        this.currentMovie.desc = this.currentMovie.desc.substr(0, 150) + '...';
+        this.currentMovie.desc = this.currentMovie.desc.substring(0, 150) + '...';
       }
     },
     //重新计算视频高度
     reCalVideoHeight(){
-      if (!this.isPc) {
-        let videoPlayerBox = this.$refs.videoPlayerBox;
-        this.videoStyle.height = calculateHigh(videoPlayerBox.clientWidth) + 'px';
-        console.log(this.videoStyle.height);
-      }
+      let videoPlayerBox = this.$refs.videoPlayerBox;
+      this.videoStyle.height = calculateHigh(videoPlayerBox.clientWidth) + 'px';
+      console.log(this.videoStyle.height);
     }
   },
   mounted() {
