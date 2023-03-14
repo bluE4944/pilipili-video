@@ -24,11 +24,12 @@
                           :zeroWidthTriggerStyle="{
                               backgroundImage: 'linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%)',
                               top: 10,
-                          }">
+                          }"
+                          trigger="align-left"
+                          >
               <mobile-head/>
           </a-layout-sider>
           <a-layout>
-
               <a-layout-content>
                   <router-view class="container-fluid"/>
               </a-layout-content>

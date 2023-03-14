@@ -36,7 +36,6 @@ export const isMobile = isMobileJS(ua).any
 export const isPhone = isMobileJS(ua).phone
 export const isAndroid = isMobileJS(ua).android
 export const isApple = isMobileJS(ua).apple && isMobileJS(ua).apple.device
-export const isSafari = isApple && _isSafari()
 export const isTencentGroup = /MQQBrowser/i.test(ua)
 export const isUC = /ucbrowser/i.test(ua)
 export const isChrome = /chrome/i.test(ua)
