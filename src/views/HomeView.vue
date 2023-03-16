@@ -22,6 +22,12 @@ export default {
   },
   methods:{
   },
+  mounted(){
+    this.carouselHeight = this.$el.clientHeight;
+  },
+  created() {
+    this.$store._isLoading = false;
+  }
 
 }
 </script>

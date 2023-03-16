@@ -8,6 +8,7 @@
               :default-selected-keys="['1']"
               :style="menuStyle"
               class="mb-1"
+              @change="routerViewChange"
       >
         <a-menu-item key="1">
           <router-link class="link" to="/"><span>首页</span></router-link>
@@ -64,6 +65,9 @@
       }
     },
     methods: {
+      routerViewChange(){
+            this.$store._isLoading = true;
+        }
     }
   }
 </script>

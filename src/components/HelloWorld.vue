@@ -1,12 +1,12 @@
 <template>
   <div class="hello">
     <a-row>
-      <a-col span="10" push="1" :xs="23">
+      <a-col span="10" push="1" :xs="22">
         <img
         :width="'100%'"
         src="../../public/images-ppt/1672655299949.png"/>
       </a-col>
-      <a-col span="10"  push="1" :xs="23">
+      <a-col span="10"  push="1" :xs="22">
         <a-card v-if="isPc">
           <a-calendar>
             <ul slot="dateCellRender" slot-scope="value" class="events">
@@ -33,7 +33,7 @@ export default {
   name: 'HelloWorld',
   data() {
     return {
-      isPc: this.$refs.isPc,
+      isPc: this.$store.isPc,
     }
   },
   methods: {
@@ -73,6 +73,10 @@ export default {
         return 1394;
       }
     },
+  },
+  mounted() {
+    this.isPc = this.$store.isPc;
+    debugger;
   },
 }
 </script>
