@@ -1,6 +1,6 @@
 <template>
   <div id="app" >
-    <div class="first-loading-wrp bg" v-if="$store._isLoading">
+    <div class="first-loading-wrp bg" v-if="$store.state.isShowLoading">
         <a-spin tip=" Loading..." :indicator="indicator" size="large"></a-spin>
     </div>
       <!-- 桌面端 -->
@@ -9,8 +9,11 @@
               <pc-head />
           </a-layout-header>
           <a-layout-content>
-            <a-spin :spinning="$store._isLoading" :indicator="indicatorNo">
-                <router-view class="container-fluid"/>
+            <a-spin :spinning="$store.state.isShowLoading" :indicator="indicatorNo">
+              <keep-alive>
+                <router-view v-if="$route.meta.keepAlive" class="container-fluid"/>
+              </keep-alive>
+              <router-view v-if="!$route.meta.keepAlive" class="container-fluid"/>
                 <a-back-top />
             </a-spin>
           </a-layout-content>
@@ -37,8 +40,8 @@
           </a-layout-sider>
           <a-layout>
               <a-layout-content>
-                <a-spin class="center" :spinning="$store._isLoading" :indicator="indicator" tip=" Loading..." size="large">
-                    <router-view class="container-fluid"/>
+                <a-spin class="center" :spinning="$store.state.isShowLoading" :indicator="indicator" tip=" Loading..." size="large">
+                    <router-view/>
                     <a-back-top />
                 </a-spin>
               </a-layout-content>
@@ -95,11 +98,11 @@
           this.isPc = !isMobile;
           console.log('isPhone:',isPhone);
           console.log('isMobile:',isMobile);
-          this.$store.isPc = this.isPc;
-          console.log('isPc',this.$store.isPc);
+          this.$store.state.isPc = this.isPc;
+          console.log('isPc',this.$store.state.isPc);
         //   this.loadTextFromFile();
           console.log(this.banner);
-          this.$store._isLoading = false;
+          this.$store.state.isShowLoading = false;
       }
 
   };

@@ -26,7 +26,7 @@ export default {
     this.carouselHeight = this.$el.clientHeight;
   },
   created() {
-    this.$store._isLoading = false;
+    this.$store.state.isShowLoading = false;
   }
 
 }

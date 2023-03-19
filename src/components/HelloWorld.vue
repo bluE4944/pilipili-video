@@ -33,7 +33,7 @@ export default {
   name: 'HelloWorld',
   data() {
     return {
-      isPc: this.$store.isPc,
+      isPc: this.$store.state.isPc,
     }
   },
   methods: {
@@ -75,7 +75,7 @@ export default {
     },
   },
   mounted() {
-    this.isPc = this.$store.isPc;
+    this.isPc = this.$store.state.isPc;
     debugger;
   },
 }

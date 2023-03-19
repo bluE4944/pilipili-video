@@ -12,7 +12,7 @@
               </a-col>
             <a-col class="btn-wrap">
               <a-button @click="open">
-                <a-icon type="ordered-list" :style="{ fontSize: '17px', color: '#08c'}" class="pb-1"/>
+                <a-icon type="unordered-list" :style="{ fontSize: '17px', color: '#08c'}" class="pb-1"/>
               </a-button>
             </a-col>
           </a-row>
@@ -34,6 +34,11 @@
         </a-col>
 
       </a-row>
+
+
+      <a-model>
+        
+      </a-model>
 
     </div>
 </template>
@@ -112,7 +117,8 @@ export default {
     this.reCalVideoHeight();
   },
   created() {
-    this.isPc = this.$store.isPc;
+    this.isPc = this.$store.state.isPc;
+    this.$store.state.isShowLoading = false;
     this.initVideo();
   }
 }
