@@ -1,16 +1,36 @@
 <template>
   <div>
-    <a-space :size="10" class="mt-2">
-      <router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link>
-      <a-avatar :size="35" :src="src"/>
-      <span>{{user.username}}</span>
-    </a-space>
+    <a-row type="flex" justify="space-between" align="middle">
+      <a-col>
+        <a-button class="pb-1 pl-2 pr-2" type="primary" @click="showDrawer">
+          <a-icon type="caret-up" v-if="visible"/>
+          <a-icon type="caret-down" v-else/>
+        </a-button>
+      </a-col>
+
+      <a-col><router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-col>
+
+      <a-col>
+        <a-space>
+          <a-avatar :size="35" :src="src"/>
+          <span>{{user.username}}</span>
+        </a-space>
+
+      </a-col>
+
+    </a-row>
+
+    <a-drawer
+    title="pilipili-video"
+    :placement="placement"
+    :closable="false"
+    :visible="visible"
+    @close="onClose">
       <a-menu
-              mode="inline"
-              :default-selected-keys="['1']"
-              :style="menuStyle"
-              class="mb-1"
-              :inline-collapsed="collapsed"
+      mode="inline"
+      :default-selected-keys="['1']"
+      :style="menuStyle"
+      :inline-collapsed="collapsed"
       >
         <a-menu-item key="1">
           <router-link class="link" to="/"><span>首页</span></router-link>
@@ -22,7 +42,7 @@
           <router-link class="link" to="/about">About</router-link>
         </a-menu-item>
       </a-menu>
-
+    </a-drawer>
   </div>
 </template>
 <script>
@@ -54,11 +74,27 @@
           username: 'bluE',
         },
         src:require('../assets/1464.jpg'),
+        //显示抽屉菜单
+        visible: false,
+        //显示位置
+        placement: 'top',
       }
     },
     methods: {
       toggleCollapsed() {
         this.collapsed = !this.collapsed;
+      },
+      //显示抽屉菜单
+      showDrawer() {
+        this.visible = !this.visible;
+      },
+      //隐藏抽屉菜单
+      onClose() {
+        this.visible = false;
+      },
+      //切换菜单样式
+      onChange(e) {
+        this.placement = e.target.value;
       },
     }
   }

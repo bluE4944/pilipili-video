@@ -21,7 +21,7 @@
         </a-menu-item>
       </a-menu>
 
-      <a-col :span="1" :lg="2" :sm="5" class="mr-3">
+      <a-col :span="1" :lg="2" :sm="5">
         <a-space>
           <a-avatar :size="35" :src="src"/>
           <span>{{user.username}}</span>
@@ -66,7 +66,8 @@
     },
     methods: {
       routerViewChange(){
-            this.$store._isLoading = true;
+            debugger;
+            this.$store.state.isShowLoading = true;
         }
     }
   }

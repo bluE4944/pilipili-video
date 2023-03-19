@@ -1,5 +1,5 @@
 <template>
-  <div class="about mt-sm-1 mt-xl-5 pt-xl-5 pt-sm-1 bg-about">
+  <div class="about bg-about">
 
     <a-row class="h-100" type="flex" justify="space-around" align="middle">
       <a-card class="card w-75 h-75">
@@ -53,7 +53,7 @@
   }
   .bg-about{
     background-image:linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%);
-    height: 100vh;
+    height: 92.7vh;
     position: absolute;
   }
 

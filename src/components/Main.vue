@@ -1,5 +1,5 @@
 <template>
-    <div class="main mt-sm-2 mt-xl-5 pt-xl-5 pt-sm-2 pt-lg-2 ">
+    <div class="main mt-sm-2 pt-sm-2 pt-lg-2 ">
       <a-row>
         <a-col :push="videoParam.videoPush" :span="videoParam.videoSpan" >
           <div id="vue-core-video-player-box" class="example-player" :style="videoStyle" ref="videoPlayerBox">
@@ -10,6 +10,7 @@
               <a-col>
                 <span class="title h3">{{currentMovie.title}}</span> 
               </a-col>
+              <!-- 分集按钮 -->
             <a-col class="btn-wrap">
               <a-button @click="open">
                 <a-icon type="unordered-list" :style="{ fontSize: '17px', color: '#08c'}" class="pb-1"/>
@@ -36,9 +37,17 @@
       </a-row>
 
 
-      <a-model>
-        
-      </a-model>
+      <a-modal
+        title="分集"
+        :visible="visible"
+        :footer="null"
+        @cancel="visible = false"
+        centered
+        mask
+        maskClosable
+      >
+      <p>你好，我是分集画面</p>
+    </a-modal>
 
     </div>
 </template>
@@ -48,7 +57,7 @@
 import MovieItem from './MovieItem.vue'
 import RecommendedItem from './Recommended.vue'
 import DATA from '../assets/data';
-import {calculateHigh} from '@/components/utils/utils'
+import {calculateHigh} from '@/components/utils/utils';
 
 let movie = DATA[2];
 
@@ -65,7 +74,7 @@ export default {
   name: 'Main',
   components: {
     MovieItem,
-    RecommendedItem
+    RecommendedItem,
   },
   data() {
     return {
@@ -87,13 +96,15 @@ export default {
         push: 3,
         span: 5,
       },
+      visible: false,
     }
   },
   watch:{
   },
   methods: {
     open() {
-      window.open('https://github.com/core-player/vue-core-video-player-examples')
+      // window.open('https://github.com/core-player/vue-core-video-player-examples')
+      this.visible = true;
     },
     //初始话视频
     initVideo() {
@@ -111,7 +122,7 @@ export default {
       let videoPlayerBox = this.$refs.videoPlayerBox;
       this.videoStyle.height = calculateHigh(videoPlayerBox.clientWidth) + 'px';
       console.log(this.videoStyle.height);
-    }
+    },
   },
   mounted() {
     this.reCalVideoHeight();

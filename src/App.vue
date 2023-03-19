@@ -1,14 +1,14 @@
 <template>
   <div id="app" >
     <div class="first-loading-wrp bg" v-if="$store.state.isShowLoading">
-        <a-spin tip=" Loading..." :indicator="indicator" size="large"></a-spin>
+        <a-spin tip=" Loading..." :indicator="indicator" size="large" />
     </div>
       <!-- 桌面端 -->
       <a-layout  class="layout" v-if="isPc">
-          <a-layout-header :style="{ position: 'fixed', zIndex: 1, width: '100%',background: '#fafafa' }">
+          <a-layout-header :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px' }">
               <pc-head />
           </a-layout-header>
-          <a-layout-content>
+          <a-layout-content style="margin-top: 55px;">
             <a-spin :spinning="$store.state.isShowLoading" :indicator="indicatorNo">
               <keep-alive>
                 <router-view v-if="$route.meta.keepAlive" class="container-fluid"/>
@@ -18,14 +18,14 @@
             </a-spin>
           </a-layout-content>
           <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
-              <a-divider />
+              <a-divider v-if="$route.name !== 'about'"/>
               pilipili-video ©2023 Created by Liam
           </a-layout-footer>
       </a-layout>
 
       <!-- 移动端 -->
       <a-layout style="min-height: 100vh ; background:#fafafa " v-if="!isPc">
-          <a-layout-sider style="background:#fafafa;"
+          <!-- <a-layout-sider style="background:#fafafa;"
                           v-model="collapsed"
                           collapsible
                           :collapsedWidth="0"
@@ -33,24 +33,29 @@
                           :zeroWidthTriggerStyle="{
                               backgroundImage: 'linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%)',
                               top: 10,
+                              paddingBottom: 10,
                           }"
-                          trigger="align-left"
+                          :trigger="indicator"
                           >
               <mobile-head/>
-          </a-layout-sider>
+          </a-layout-sider> -->
           <a-layout>
-              <a-layout-content>
+              <a-layout-header :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px'}">
+                <mobile-head/>
+              </a-layout-header>
+              <a-layout-content style="margin-top: 55px;">
                 <a-spin class="center" :spinning="$store.state.isShowLoading" :indicator="indicator" tip=" Loading..." size="large">
                     <router-view/>
-                    <a-back-top />
+                    
                 </a-spin>
               </a-layout-content>
               <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
-                <a-divider/>
+                <a-divider v-if="$route.name !== 'about'"/>
                   pilipili-video ©2023 Created by Liam
               </a-layout-footer>
           </a-layout>
       </a-layout>
+      <a-back-top />
   </div>
 </template>
 

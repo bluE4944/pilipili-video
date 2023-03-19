@@ -32,6 +32,7 @@ export function _isMobile() {
 //用户代理
 const ua = navigator.userAgent.toLowerCase()
 
+//设备类型
 export const isMobile = isMobileJS(ua).any
 export const isPhone = isMobileJS(ua).phone
 export const isAndroid = isMobileJS(ua).android
