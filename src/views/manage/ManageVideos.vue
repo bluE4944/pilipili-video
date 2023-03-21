@@ -25,7 +25,6 @@
         scopedSlots: { customRender: 'action' },
       },
     ];
-    
     const data = [];
     for (let i = 0; i < 100; i++) {
       data.push({
