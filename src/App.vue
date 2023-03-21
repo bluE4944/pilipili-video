@@ -5,7 +5,7 @@
     </div>
       <!-- 桌面端 -->
       <a-layout  class="layout" v-if="isPc">
-          <a-layout-header :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',lineHeight: '55px'}">
+          <a-layout-header class="shadow-sm bg-color" :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',lineHeight: '55px'}">
               <pc-head />
           </a-layout-header>
           <a-layout-content style="margin-top: 55px;">
@@ -40,7 +40,7 @@
               <mobile-head/>
           </a-layout-sider> -->
           <a-layout>
-              <a-layout-header :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px',lineHeight: '55px'}">
+              <a-layout-header class="bg-color" :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px',lineHeight: '55px'}">
                 <mobile-head/>
               </a-layout-header>
               <a-layout-content style="margin-top: 55px;">

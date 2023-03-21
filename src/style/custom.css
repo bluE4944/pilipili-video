@@ -3,7 +3,7 @@ body {
 }
 
 .bg-color{
-  background-color: #fafafa;
+  background-color: #fafafa !important;
 }
 
 #app .bg-info {
@@ -41,4 +41,17 @@ body {
 }
 #app .footer a:hover{
   color: rgba(255,255,255, 1);
+}
+
+.link{
+  text-decoration: none;
+}
+
+.link:hover{
+  text-decoration: none;
+}
+
+
+.link-hover:hover{
+  color: #70a7ff;
 }

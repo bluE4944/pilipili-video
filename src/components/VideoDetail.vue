@@ -1,5 +1,5 @@
 <template>
-    <div class="main mt-sm-2 pt-sm-2 pt-lg-2 ">
+    <div class="main mt-sm-2 pt-sm-2 pt-lg-2">
       <a-row>
         <a-col :push="videoParam.videoPush" :span="videoParam.videoSpan" >
           <div id="vue-core-video-player-box" class="example-player" :style="videoStyle" ref="videoPlayerBox">
@@ -71,7 +71,7 @@ if (location.search) {
 }
 
 export default {
-  name: 'Main',
+  name: 'VideoDetail',
   components: {
     MovieItem,
     RecommendedItem,
