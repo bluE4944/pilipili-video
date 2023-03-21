@@ -11,11 +11,13 @@ const routes = [
     name: 'videoDetail',
     component: HomeView
   },
+  //主页
   {
     path: '/home',
     name: 'home',
     component: HomeView
   },
+  //关于页面
   {
     path: '/about',
     name: 'about',
@@ -38,7 +40,19 @@ const routes = [
     path: '/videoDetail',
     name: 'videoDetail',
     component: () => import(/* webpackChunkName: "about" */ '../components/VideoDetail.vue'),
-  }
+  },
+  //管理人员页
+  {
+    path: '/manageUsers',
+    name: 'manageUsers',
+    component: () => import(/* webpackChunkName: "about" */ '../views/manage/ManageUsers.vue'),
+  },
+  //管理视频页
+  {
+    path: '/manageVideos',
+    name: 'manageVideos',
+    component: () => import(/* webpackChunkName: "about" */ '../views/manage/ManageVideos.vue'),
+  },
 ]
 
 const router = new VueRouter({

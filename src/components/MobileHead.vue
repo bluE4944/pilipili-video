@@ -3,8 +3,8 @@
     <a-row type="flex" justify="space-between" align="middle">
       <a-col>
         <a-button class="pb-1 pl-2 pr-2" type="primary" @click="showDrawer">
-          <a-icon type="caret-up" v-if="visible"/>
-          <a-icon type="caret-down" v-else/>
+          <a-icon type="caret-up" v-show="visible"/>
+          <a-icon type="caret-down"v-show="!visible"/>
         </a-button>
       </a-col>
 
@@ -36,7 +36,7 @@
           <router-link class="link" to="/"><span>首页</span></router-link>
         </a-menu-item>
         <a-menu-item  key="2" >
-          <router-link class="link" to="/videoDetail">视频</router-link>
+          <router-link class="link" to="/videoHome">视频</router-link>
         </a-menu-item>
         <a-menu-item key="3">
           <router-link class="link" to="/about">About</router-link>

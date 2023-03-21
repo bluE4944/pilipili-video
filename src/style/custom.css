@@ -55,3 +55,7 @@ body {
 .link-hover:hover{
   color: #70a7ff;
 }
+
+.bg-a-25{
+  background: rgba(255,255,255, .25);
+}

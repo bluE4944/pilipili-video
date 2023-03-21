@@ -1,6 +1,22 @@
 <template>
-    <div class="p-5">
-        <a-list :grid="{ gutter: 16, column: 5 }" :data-source="data">
+    <div class="pl-5 pr-5 pt-4">
+        <!--检索框-->
+        <a-row type="flex" justify="center" class="mb-4">
+            <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-25 bg-a-25" @search="onSearch" :loading="$store.state.isShowLoading"/>
+        </a-row>
+        
+        <!--电影列表-->
+        <a-list :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 5 }" :data-source="data">
+            <div
+                v-if="showLoadingMore"
+                slot="loadMore"
+                :style="{ textAlign: 'center', marginTop: '12px', height: '32px', lineHeight: '32px' }"
+                >
+                <a-spin v-if="loadingMore" />
+                <a-button v-else @click="onLoadMore">
+                    loading more
+                </a-button>
+            </div>
             <a-list-item slot="renderItem" slot-scope="item, index">
               <a-card hoverable @click="toVideoDetail(item.videoId)">
                 <img
@@ -56,6 +72,14 @@
             return {
                 loading: true,
                 data,
+                loading: true,
+                loadingMore: false,
+                showLoadingMore: true,
+                formDate:{
+                    page: 1,
+                    pageSize: 10,
+                    title: "",
+                },
             }
         },
         // 计算属性 类似于 data 概念
@@ -71,11 +95,38 @@
                     params: { videoId: videoId }
                 })
             },
+            getData(callback) {
+                
+            },
+            //加载更多
+            onLoadMore() {
+                this.loadingMore = true;
+                this.getData(res => {
+                    this.data = this.data.concat(res.results);
+                    this.loadingMore = false;
+                    this.$nextTick(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    });
+                });
+            },
+            //搜索
+            onSearch(){
+                this.formDate;
+                debugger;
+                this.$store.state.isShowLoading = true;
+                setTimeout(() =>{
+                    this.$store.state.isShowLoading = false;
+                },4000);
+            },
         },
         // 生命周期
         created() {
         },
         mounted() {
+            this.getData(res => {
+                this.loading = false;
+                this.data = res.results;
+            });
         },
         beforeCreate() {
         },
