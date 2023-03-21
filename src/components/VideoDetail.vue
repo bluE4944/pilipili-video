@@ -81,6 +81,7 @@ export default {
       title: '',
       movieList: DATA,
       recommendList: [DATA[2], DATA[4], DATA[1], DATA[0]],
+      videoId: -1,
       currentMovie: movie,
       url: require("../assets/sparkle_your_name_am720p.mp4"),
       isPc: true,
@@ -126,6 +127,8 @@ export default {
   },
   mounted() {
     this.reCalVideoHeight();
+    this.videoId = this.$route.params.videoId;
+    console.log(this.videoId);
   },
   created() {
     this.isPc = this.$store.state.isPc;
