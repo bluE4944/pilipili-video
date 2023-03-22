@@ -1,30 +1,32 @@
 <template>
-  <div class="hello">
-    <a-row>
-      <a-col span="10" push="1" :xs="22">
-        <img
-        :width="'100%'"
-        src="../../public/images-ppt/1672655299949.png"/>
-      </a-col>
-      <a-col span="10"  push="1" :xs="22">
-        <a-card v-if="isPc">
-          <a-calendar>
-            <ul slot="dateCellRender" slot-scope="value" class="events">
-              <li v-for="item in getListData(value)" :key="item.content">
-                <a-badge :status="item.type" :text="item.content" />
-              </li>
-            </ul>
-            <template slot="monthCellRender" slot-scope="value">
-              <div v-if="getMonthData(value)" class="notes-month">
-                <section>{{ getMonthData(value) }}</section>
-                <span>Backlog number</span>
-              </div>
-            </template>
-          </a-calendar>
-        </a-card>
-      </a-col>
-    </a-row>
-    
+  <div class="hello pl-4 pr-4 pt-3">
+    <a-card :bordered="false">
+      <h1 style="text-align: center;">Welcome to pilipili-video App</h1>
+      <a-row>
+        <a-col span="10" push="1" :xs="22">
+          <img
+          :width="'100%'"
+          src="../../public/images-ppt/1672655299949.png"/>
+        </a-col>
+        <a-col span="10"  push="1" :xs="22">
+          <a-card v-if="isPc">
+            <a-calendar>
+              <ul slot="dateCellRender" slot-scope="value" class="events">
+                <li v-for="item in getListData(value)" :key="item.content">
+                  <a-badge :status="item.type" :text="item.content" />
+                </li>
+              </ul>
+              <template slot="monthCellRender" slot-scope="value">
+                <div v-if="getMonthData(value)" class="notes-month">
+                  <section>{{ getMonthData(value) }}</section>
+                  <span>Backlog number</span>
+                </div>
+              </template>
+            </a-calendar>
+          </a-card>
+        </a-col>
+      </a-row>
+    </a-card>
   </div>
 </template>
 

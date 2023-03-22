@@ -6,6 +6,7 @@ import { BootstrapVue, IconsPlugin } from 'bootstrap-vue';
 import VueCoreVideoPlayer from 'vue-core-video-player';
 import Antd from "ant-design-vue";
 import 'ant-design-vue/dist/antd.css';
+import './utils/axios';
 
 //字体
 import './assets/font/local-fonts.css'

@@ -56,8 +56,8 @@
 
 import MovieItem from './MovieItem.vue'
 import RecommendedItem from './Recommended.vue'
-import DATA from '../assets/data';
-import {calculateHigh} from '@/components/utils/utils';
+import DATA from '@/assets/data';
+import {calculateHigh} from '@/utils/utils';
 
 let movie = DATA[2];
 
@@ -107,7 +107,7 @@ export default {
       // window.open('https://github.com/core-player/vue-core-video-player-examples')
       this.visible = true;
     },
-    //初始话视频
+    //初始化视频
     initVideo() {
       this.currentMovie.source = this.url;
       if (!this.isPc) {
@@ -132,7 +132,7 @@ export default {
   },
   created() {
     this.isPc = this.$store.state.isPc;
-    this.$store.state.isShowLoading = false;
+    this.$store.state.showLoading = false;
     this.initVideo();
   }
 }

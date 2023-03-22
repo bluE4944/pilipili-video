@@ -1,6 +1,5 @@
 <template>
   <div class="home mt-sm-1 pt-sm-1">
-    <h1 style="text-align: center;">Welcome to pilipili-video App</h1>
 
     <HelloWorld msg="Welcome to Your Vue.js App"/>
   </div>

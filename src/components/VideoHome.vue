@@ -1,38 +1,41 @@
 <template>
     <div class="pl-5 pr-5 pt-4">
-        <!--检索框-->
-        <a-row type="flex" justify="center" class="mb-4">
-            <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-25 bg-a-25" @search="onSearch" :loading="$store.state.isShowLoading"/>
-        </a-row>
+        <a-card :bordered="false">
+            <!--检索框-->
+            <a-row type="flex" justify="center" class="mb-4">
+                <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-25 bg-a-25" @search="onSearch" :loading="$store.state.showLoading"/>
+            </a-row>
+            
+            <!--电影列表-->
+            <a-list :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 5 }" :data-source="data">
+                <div
+                    v-if="showLoadingMore"
+                    slot="loadMore"
+                    :style="{ textAlign: 'center', marginTop: '12px', height: '32px', lineHeight: '32px' }"
+                    >
+                    <a-spin v-if="loadingMore" />
+                    <a-button v-else @click="onLoadMore">
+                        loading more
+                    </a-button>
+                </div>
+                <a-list-item slot="renderItem" slot-scope="item, index">
+                <a-card hoverable @click="toVideoDetail(item.videoId)">
+                    <img
+                        slot="cover"
+                        alt="example"
+                        :src="item.img"
+                    />
+                    <a-card-meta :title="item.title">
+                        <template slot="description">
+                            {{item.description}}
+                        </template>
+                    </a-card-meta>
+                    
+                </a-card>
+                </a-list-item>
+            </a-list>
+        </a-card>
         
-        <!--电影列表-->
-        <a-list :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 5 }" :data-source="data">
-            <div
-                v-if="showLoadingMore"
-                slot="loadMore"
-                :style="{ textAlign: 'center', marginTop: '12px', height: '32px', lineHeight: '32px' }"
-                >
-                <a-spin v-if="loadingMore" />
-                <a-button v-else @click="onLoadMore">
-                    loading more
-                </a-button>
-            </div>
-            <a-list-item slot="renderItem" slot-scope="item, index">
-              <a-card hoverable @click="toVideoDetail(item.videoId)">
-                <img
-                    slot="cover"
-                    alt="example"
-                    :src="item.img"
-                />
-                <a-card-meta :title="item.title">
-                    <template slot="description">
-                        {{item.description}}
-                    </template>
-                </a-card-meta>
-                
-              </a-card>
-            </a-list-item>
-        </a-list>
     </div>
 
 </template>
@@ -113,9 +116,9 @@
             onSearch(){
                 this.formDate;
                 debugger;
-                this.$store.state.isShowLoading = true;
-                setTimeout(() =>{
-                    this.$store.state.isShowLoading = false;
+                this.$store.commit('loading', true);
+                setTimeout(() => {
+                    this.$store.commit('loading', false);
                 },4000);
             },
         },

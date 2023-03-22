@@ -8,7 +8,7 @@ Vue.use(VueRouter)
 const routes = [
   {
     path: '/',
-    name: 'videoDetail',
+    name: 'home',
     component: HomeView
   },
   //主页

@@ -1,6 +1,6 @@
 <template>
   <div id="app" >
-    <div class="first-loading-wrp bg" v-if="$store.state.isShowLoading">
+    <div class="first-loading-wrp bg" v-if="$store.state.showLoading">
         <a-spin tip=" Loading..." :indicator="indicator" size="large" />
     </div>
       <!-- 桌面端 -->
@@ -9,7 +9,7 @@
               <pc-head />
           </a-layout-header>
           <a-layout-content style="margin-top: 55px;">
-            <a-spin :spinning="$store.state.isShowLoading" :indicator="indicatorNo">
+            <a-spin :spinning="$store.state.showLoading" :indicator="indicatorNo">
               <keep-alive>
                 <router-view v-if="$route.meta.keepAlive" class="container-fluid"/>
               </keep-alive>
@@ -44,7 +44,7 @@
                 <mobile-head/>
               </a-layout-header>
               <a-layout-content style="margin-top: 55px;">
-                <a-spin class="center" :spinning="$store.state.isShowLoading" :indicator="indicator" tip=" Loading..." size="large">
+                <a-spin class="center" :spinning="$store.state.showLoading" :indicator="indicator" tip=" Loading..." size="large">
                     <router-view/>
                     
                 </a-spin>
@@ -62,7 +62,7 @@
 <script>
   import PcHead from "@/components/Head";
   import MobileHead from "@/components/MobileHead";
-  import {isMobile,isPhone,_isMobile} from "@/components/utils/utils"
+  import {isMobile,isPhone,_isMobile} from "@/utils/utils"
 
   export default {
       isSubMenu: false,
@@ -103,11 +103,11 @@
           this.isPc = !isMobile;
           console.log('isPhone:',isPhone);
           console.log('isMobile:',isMobile);
-          this.$store.state.isPc = this.isPc;
-          console.log('isPc',this.$store.state.isPc);
+          this.$store.dispatch('isPc',this.isPc);
+          console.log('isPc',this.$store.getters.isPc);
         //   this.loadTextFromFile();
           console.log(this.banner);
-          this.$store.state.isShowLoading = false;
+          this.$store.state.showLoading = false;
       }
 
   };
