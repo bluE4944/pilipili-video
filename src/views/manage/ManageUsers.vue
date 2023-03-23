@@ -1,8 +1,10 @@
 <template>
     <div class="p-5">
+        
         <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
             <a slot="action" slot-scope="text">action</a>
         </a-table>
+
     </div>
 </template>
 <script>
@@ -45,6 +47,12 @@
         },
         // 生命周期
         created() {
+        },
+        methods: {
+          action(text, record) {
+            console.log(text, record);
+          },
+          
         },
         mounted() {
             this.getData(res => {

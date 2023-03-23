@@ -1,5 +1,5 @@
 const state={
-    isShowLoading: true,
+    showLoading: true,
     isPc: true,
 }
 

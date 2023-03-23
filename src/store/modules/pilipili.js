@@ -5,7 +5,7 @@ export default{
     state: {
         token: null,
         user: null,
-        loading: false,
+        loading: true,
     },
     getters:{
         token: state => state.token,
@@ -13,13 +13,19 @@ export default{
         loading: state => state.loading,
     },
     mutations:{
-        [types.SET_TOKEN](state, token){
+        [types.LOADING](state, loading){
+            state.loading = loading
+        },
+        [types.TOKEN](state, token){
             state.token = token
         }
     },
     actions:{
-        [types.SET_TOKEN]({commit}, token){
-            commit(types.SET_TOKEN, token)
+        [types.TOKEN]({commit}, token){
+            commit(types.TOKEN, token)
+        },
+        [types.LOADING]({commit}, loading){
+            commit(types.LOADING, loading)
         }
     }
 }

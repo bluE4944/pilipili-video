@@ -100,7 +100,7 @@
     methods: {
       routerViewChange(){
             debugger;
-            this.$store.state.isShowLoading = true;
+            this.$store.state.showLoading = true;
         },
         onClick({ key }) {
           console.log(`Click on item ${key}`);

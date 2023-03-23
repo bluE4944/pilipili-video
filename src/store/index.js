@@ -11,15 +11,33 @@ export default new Vuex.Store({
   namespaced: true,
   state,
   getters: {
+    showLoading(state) {
+      return state.showLoading
+    },
+    isPs(state){
+      return state.isPs
+    }
   },
   mutations: {
-    [types.SET_LOADING]({state}, load) {
-      state.showLoading = load
+    [types.LOADING](state, loading) {
+      state.showLoading = loading
+    },
+    [types.HIDE_LOADING](state) {
+      state.showLoading = false
+    },
+    [types.SHOW_LOADING](state) {
+      state.showLoading = true
     }
   },
   actions: {
-    [types.SET_LOADING]({commit},load){
-      commit(types.SET_LOADING,load);
+    [types.LOADING]({commit},loading){
+      commit(types.LOADING,loading);
+    },
+    [types.HIDE_LOADING]({commit}){
+      commit(types.HIDE_LOADING);
+    },
+    [types.SHOW_LOADING]({commit}){
+      commit(types.SHOW_LOADING);
     }
   },
   modules: {

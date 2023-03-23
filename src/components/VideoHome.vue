@@ -116,9 +116,9 @@
             onSearch(){
                 this.formDate;
                 debugger;
-                this.$store.commit('loading', true);
+                this.$store.dispatch(this.$types.SHOW_LOADING);
                 setTimeout(() => {
-                    this.$store.commit('loading', false);
+                    this.$store.dispatch(this.$types.HIDE_LOADING);
                 },4000);
             },
         },

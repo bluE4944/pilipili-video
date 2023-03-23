@@ -1,12 +1,15 @@
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
-import store from './store'
+import store from './store/'
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue';
 import VueCoreVideoPlayer from 'vue-core-video-player';
 import Antd from "ant-design-vue";
 import 'ant-design-vue/dist/antd.css';
 import './utils/axios';
+import * as types from './store/mutation-types';
+
+import {proTable} from 'ant-design-vue/'
 
 //字体
 import './assets/font/local-fonts.css'
@@ -16,6 +19,14 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import './style/custom.css'
+
+import Viewer from 'v-viewer';
+import 'viewerjs/dist/viewer.css';
+
+Vue.use(Viewer);
+Viewer.setDefaults({
+  Options: { "inline": true, "button": true, "navbar": true, "title": true, "toolbar": true, "tooltip": true, "movable": true, "zoomable": true, "rotatable": true, "scalable": true, "transition": true, "fullscreen": true, "keyboard": true, "url": "data-source" }
+});
 
 
 Vue.config.productionTip = false;
@@ -34,3 +45,5 @@ new Vue({
   store,
   render: h => h(App)
 }).$mount('#app');
+
+Vue.prototype.$types = types;

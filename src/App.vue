@@ -107,7 +107,9 @@
           console.log('isPc',this.$store.getters.isPc);
         //   this.loadTextFromFile();
           console.log(this.banner);
-          this.$store.state.showLoading = false;
+          setTimeout(() => {
+                    this.$store.dispatch(this.$types.HIDE_LOADING);
+                },4000);
       }
 
   };
