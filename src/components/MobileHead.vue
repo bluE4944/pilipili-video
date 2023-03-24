@@ -11,6 +11,45 @@
       <a-col><router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-col>
 
       <a-col>
+        <a-dropdown placement="bottomCenter">
+          <a-space @click="e => e.preventDefault()" class="link-hover">
+            <a-avatar class="ant-card-grid-hoverable" :size="35" :src="src"/>
+            <span>{{user.username}}</span>
+          </a-space>
+          <a-menu slot="overlay" @click="onClick">
+            <a-menu-item class="p-2 pr-3 pl-3">
+              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#"
+                ><a-space>
+                  <a-icon class="p-1" type="user" /> 
+                  <span class="pr-1">个人中心</span>
+                </a-space> </a>
+            </a-menu-item>
+            <a-menu-item class="p-2 pr-3 pl-3">
+              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#" 
+                ><a-space>
+                  <a-icon class="p-1" type="clock-circle" /> 
+                  <span class="pr-1">历史记录</span>
+                </a-space>
+                </a>
+            </a-menu-item>
+            <a-menu-item class="p-2 pr-3 pl-3">
+              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#" 
+                ><a-space>
+                  <a-icon class="p-1" type="video-camera" />
+                  <span class="pr-1">投稿管理</span>
+                </a-space>
+                </a>
+            </a-menu-item>
+            <a-menu-item class="p-2 pr-3 pl-3">
+              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#">
+                <a-space>
+                  <a-icon class="p-1" type="export" /> 
+                  <span class="pr-1">退出登录</span>
+                </a-space>
+              </a>
+            </a-menu-item>
+          </a-menu>
+        </a-dropdown>
       </a-col>
 
     </a-row>
