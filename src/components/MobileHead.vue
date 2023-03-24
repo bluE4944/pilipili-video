@@ -11,11 +11,6 @@
       <a-col><router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link></a-col>
 
       <a-col>
-        <a-space>
-          <a-avatar :size="35" :src="src"/>
-          <span>{{user.username}}</span>
-        </a-space>
-
       </a-col>
 
     </a-row>
