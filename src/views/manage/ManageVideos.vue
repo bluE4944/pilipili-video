@@ -36,6 +36,7 @@
     }
     
     export default {
+        name: 'ManageVideos',
         data() {
             return {
             data,

@@ -9,7 +9,9 @@ import 'ant-design-vue/dist/antd.css';
 import './utils/axios';
 import * as types from './store/mutation-types';
 
-import {proTable} from 'ant-design-vue/'
+//videojs-plugin
+import VueVideoPlayer from '@videojs-player/vue'
+import 'video.js/dist/video-js.css'
 
 //字体
 import './assets/font/local-fonts.css'
@@ -39,6 +41,8 @@ Vue.use(IconsPlugin);
 Vue.use(VueCoreVideoPlayer);
 
 Vue.use(Antd);
+
+Vue.use(VueVideoPlayer);
 
 new Vue({
   router,

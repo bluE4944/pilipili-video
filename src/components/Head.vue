@@ -19,6 +19,15 @@
         <a-menu-item key="3">
           <router-link class="link" to="/about">About</router-link>
         </a-menu-item>
+        <a-menu-item key="4">
+          <router-link class="link" to="/manageUsers">用户管理</router-link>
+        </a-menu-item>
+        <a-menu-item key="5">
+          <router-link class="link" to="/manageVideos">视频管理</router-link>
+        </a-menu-item>
+        <a-menu-item key="6">
+          <router-link class="link" to="/adminManage">超级管理员</router-link>
+        </a-menu-item>
       </a-menu>
 
       <a-col :span="1" :lg="2" :sm="5">

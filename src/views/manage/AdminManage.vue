@@ -1,10 +1,8 @@
 <template>
     <div class="p-5">
-        
         <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
             <a slot="action" slot-scope="text">action</a>
         </a-table>
-
     </div>
 </template>
 <script>
@@ -27,7 +25,6 @@
         scopedSlots: { customRender: 'action' },
       },
     ];
-    
     const data = [];
     for (let i = 0; i < 100; i++) {
       data.push({
@@ -39,7 +36,7 @@
     }
     
     export default {
-        name: 'ManageUsers',
+        name: 'AdminManage',
         data() {
             return {
             data,
@@ -48,12 +45,6 @@
         },
         // 生命周期
         created() {
-        },
-        methods: {
-          action(text, record) {
-            console.log(text, record);
-          },
-          
         },
         mounted() {
             this.getData(res => {
@@ -76,6 +67,7 @@
         activated() {
         }
     }
+
 </script>
 
 <style scoped lang="less">

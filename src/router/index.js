@@ -53,6 +53,12 @@ const routes = [
     name: 'manageVideos',
     component: () => import(/* webpackChunkName: "about" */ '../views/manage/ManageVideos.vue'),
   },
+  //管理员页
+  {
+    path: '/adminManage',
+    name: 'adminManage',
+    component: () => import(/* webpackChunkName: "about" */ '../views/manage/AdminManage.vue'),
+  },
 ]
 
 const router = new VueRouter({
