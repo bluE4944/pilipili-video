@@ -1,8 +1,10 @@
 <template>
-    <div class="p-5">
-        <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
+    <div class="pt-5 pl-5 pr-5">
+      <a-card title="视频管理">
+          <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
             <a slot="action" slot-scope="text">action</a>
-        </a-table>
+          </a-table>
+      </a-card>
     </div>
 </template>
 <script>

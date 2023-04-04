@@ -1,9 +1,11 @@
 <template>
-    <div class="p-5">
+  <div class="pt-5 pl-5 pr-5">
+    <a-card title="admin">
         <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
-            <a slot="action" slot-scope="text">action</a>
+          <a slot="action" slot-scope="text">action</a>
         </a-table>
-    </div>
+    </a-card>
+  </div>
 </template>
 <script>
     const columns = [

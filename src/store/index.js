@@ -4,6 +4,7 @@ import state from './state';
 import user from './modules/user';
 import pilipili from './modules/pilipili';
 import * as types from './mutation-types';
+import { Loading } from 'element-ui';
 
 Vue.use(Vuex)
 
@@ -24,9 +25,11 @@ export default new Vuex.Store({
     },
     [types.HIDE_LOADING](state) {
       state.showLoading = false
+      state.loadingInstance.close();
     },
     [types.SHOW_LOADING](state) {
-      state.showLoading = true
+      state.showLoading = true,
+      state.loadingInstance = Loading.service(types.LOADIBG_OPTIONS);
     }
   },
   actions: {

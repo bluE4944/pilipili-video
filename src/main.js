@@ -9,9 +9,15 @@ import 'ant-design-vue/dist/antd.css';
 import './utils/axios';
 import * as types from './store/mutation-types';
 
+//ElementUI
+import ElementUI from 'element-ui';
+import 'element-ui/lib/theme-chalk/index.css';
+import { Button } from 'element-ui';
+
+
 //videojs-plugin
-import VueVideoPlayer from '@videojs-player/vue'
-import 'video.js/dist/video-js.css'
+// import VueVideoPlayer from '@videojs-player/vue'
+// import 'video.js/dist/video-js.css'
 
 //字体
 import './assets/font/local-fonts.css'
@@ -42,7 +48,11 @@ Vue.use(VueCoreVideoPlayer);
 
 Vue.use(Antd);
 
-Vue.use(VueVideoPlayer);
+// Vue.use(VueVideoPlayer);
+
+Vue.use(ElementUI);
+Vue.prototype.$ELEMENT = { size: 'small' };
+Vue.use(Button);
 
 new Vue({
   router,
