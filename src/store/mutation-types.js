@@ -6,3 +6,4 @@ export const SHOW_LOADING = 'showLoading';
 export const HIDE_LOADING = 'hideLoading';
 export const TOKEN = 'token';
 export const LOADIBG_OPTIONS = { fullscreen: true,text: 'loading',spinner: 'el-icon-loading' };
+export const IS_PC = 'isPc';

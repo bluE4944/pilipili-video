@@ -16,7 +16,7 @@ export default new Vuex.Store({
       return state.showLoading
     },
     isPs(state){
-      return state.isPs
+      return state.isPc
     }
   },
   mutations: {
@@ -28,8 +28,11 @@ export default new Vuex.Store({
       state.loadingInstance.close();
     },
     [types.SHOW_LOADING](state) {
-      state.showLoading = true,
+      state.showLoading = true
       state.loadingInstance = Loading.service(types.LOADIBG_OPTIONS);
+    },
+    [types.IS_PC](state,isPc) {
+      state.isPc = isPc
     }
   },
   actions: {
@@ -41,7 +44,10 @@ export default new Vuex.Store({
     },
     [types.SHOW_LOADING]({commit}){
       commit(types.SHOW_LOADING);
-    }
+    },
+    [types.IS_PC]({commit},isPc){
+      commit(types.IS_PC,isPc);
+    },
   },
   modules: {
     user,

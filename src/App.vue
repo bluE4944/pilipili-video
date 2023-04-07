@@ -103,7 +103,7 @@
           this.isPc = !isMobile;
           console.log('isPhone:',isPhone);
           console.log('isMobile:',isMobile);
-          this.$store.dispatch('isPc',this.isPc);
+          this.$store.dispatch(this.$types.IS_PC,this.isPc);
           console.log('isPc',this.$store.getters.isPc);
         //   this.loadTextFromFile();
           console.log(this.banner);
