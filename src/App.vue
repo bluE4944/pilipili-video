@@ -5,7 +5,7 @@
     </div>
       <!-- 桌面端 -->
       <a-layout  class="layout" v-if="isPc">
-          <a-layout-header class="shadow-sm bg-color" :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',lineHeight: '55px'}">
+          <a-layout-header class="shadow-sm bg-color" :style="{ position: 'fixed', zIndex: 99, width: '100%',background: '#fafafa',height:'55px',lineHeight: '55px'}">
               <pc-head />
           </a-layout-header>
           <a-layout-content style="margin-top: 55px;">
@@ -17,8 +17,8 @@
                 <a-back-top />  
             </a-spin>
           </a-layout-content>
-          <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
-              <a-divider v-if="$route.name !== 'about'"/>
+          <a-layout-footer v-if="footerRouteName.includes($route.name)" :style="{ textAlign: 'center',background:'none' }">
+              <a-divider />
               pilipili-video ©2023 Created by Liam
           </a-layout-footer>
       </a-layout>
@@ -40,17 +40,16 @@
               <mobile-head/>
           </a-layout-sider> -->
           <a-layout>
-              <a-layout-header class="bg-color" :style="{ position: 'fixed', zIndex: 999999, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px',lineHeight: '55px'}">
+              <a-layout-header class="bg-color" :style="{ position: 'fixed', zIndex: 99, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px',lineHeight: '55px'}">
                 <mobile-head/>
               </a-layout-header>
               <a-layout-content style="margin-top: 55px;">
                 <a-spin class="center" :spinning="$store.state.showLoading" :indicator="indicator" tip=" Loading..." size="large">
                     <router-view/>
-                    
                 </a-spin>
               </a-layout-content>
-              <a-layout-footer :style="{ textAlign: 'center',background:'none' }">
-                <a-divider v-if="$route.name !== 'about'"/>
+              <a-layout-footer v-if="footerRouteName.includes($route.name)" :style="{ textAlign: 'center',background:'none' }">
+                <a-divider/>
                   pilipili-video ©2023 Created by Liam
               </a-layout-footer>
           </a-layout>
@@ -79,6 +78,7 @@
               indicator: <a-icon type="play-circle"  spin />,
               indicatorNo: <a-icon type="1"  />,
               banner: "",
+              footerRouteName: ["home", "videoHome", "videoDetail", ],
           };
       },
       methods:{
@@ -103,7 +103,6 @@
           this.isPc = !isMobile;
           console.log('isPhone:',isPhone);
           console.log('isMobile:',isMobile);
-          this.$store.dispatch(this.$types.IS_PC,this.isPc);
           console.log('isPc',this.$store.getters.isPc);
         //   this.loadTextFromFile();
           console.log(this.banner);
@@ -121,6 +120,15 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       color: #2c3e50;
+      .ant-table-thead > tr > th {  
+        background: #f1f6ff !important;
+      }
+    }
+
+    body {
+      .ant-table-thead > tr > th {  
+        background: #f1f6ff !important;
+      }
     }
 
 
@@ -158,7 +166,7 @@
     .bg {
         position: fixed;
         background-color: rgba(200, 200, 200, 0.1);
-        z-index: 10000;
+        z-index: 999999;
     }
 
 </style>

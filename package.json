@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@core-player/playcore-hls": "^0.1.1",
+    "animate.css": "^4.1.1",
     "ant-design-vue": "^1.7.4",
     "axios": "^0.21.4",
     "bootstrap": "^4.4.1",
