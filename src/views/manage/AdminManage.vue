@@ -1,58 +1,91 @@
 <template>
   <div class="pt-5 pl-5 pr-5">
     <a-card title="admin">
-        <a-table :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 300 }">
-          <a slot="action" slot-scope="text">action</a>
-        </a-table>
+      <el-row>
+
+      </el-row>
+      <el-form ref="form" :model="form" label-width="100px" >
+        <el-form-item label="视频目录:">
+          <el-button type="primary">添加视频扫描目录</el-button>
+        </el-form-item>
+        <el-form-item label="修改密码:">
+          <el-col :span="11">
+            <el-input show-password v-model="form.password"></el-input>
+          </el-col>
+          <el-col class="line pl-2" :span="2">确认密码:</el-col>
+          <el-col :span="11">
+            <el-input show-password v-model="form.confirmPassword"></el-input>
+          </el-col>
+        </el-form-item>
+        <el-form-item label="活动区域:">
+          <el-select v-model="form.region" placeholder="请选择活动区域">
+            <el-option label="区域一" value="shanghai"></el-option>
+            <el-option label="区域二" value="beijing"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="活动时间:">
+          <el-col :span="11">
+            <el-date-picker type="date" placeholder="选择日期" v-model="form.date1" style="width: 100%;"></el-date-picker>
+          </el-col>
+          <el-col class="line" :span="1">-</el-col>
+          <el-col :span="11">
+            <el-time-picker placeholder="选择时间" v-model="form.date2" style="width: 100%;"></el-time-picker>
+          </el-col>
+        </el-form-item>
+        <el-form-item label="即时配送:">
+          <el-switch v-model="form.delivery"></el-switch>
+        </el-form-item>
+        <el-form-item label="活动性质:">
+          <el-checkbox-group v-model="form.type">
+            <el-checkbox label="美食/餐厅线上活动" name="type"></el-checkbox>
+            <el-checkbox label="地推活动" name="type"></el-checkbox>
+            <el-checkbox label="线下主题活动" name="type"></el-checkbox>
+            <el-checkbox label="单纯品牌曝光" name="type"></el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="特殊资源:">
+          <el-radio-group v-model="form.resource">
+            <el-radio label="线上品牌商赞助"></el-radio>
+            <el-radio label="线下场地免费"></el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="活动形式:">
+          <el-input type="textarea" v-model="form.desc"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="onSubmit">立即创建</el-button>
+          <el-button>取消</el-button>
+        </el-form-item>
+      </el-form>
     </a-card>
   </div>
 </template>
 <script>
-    const columns = [
-      { title: 'Full Name', width: 100, dataIndex: 'name', key: 'name', fixed: 'left' },
-      { title: 'Age', width: 100, dataIndex: 'age', key: 'age', fixed: 'left' },
-      { title: 'Column 1', dataIndex: 'address', key: '1', width: 150 },
-      { title: 'Column 2', dataIndex: 'address', key: '2', width: 150 },
-      { title: 'Column 3', dataIndex: 'address', key: '3', width: 150 },
-      { title: 'Column 4', dataIndex: 'address', key: '4', width: 150 },
-      { title: 'Column 5', dataIndex: 'address', key: '5', width: 150 },
-      { title: 'Column 6', dataIndex: 'address', key: '6', width: 150 },
-      { title: 'Column 7', dataIndex: 'address', key: '7', width: 150 },
-      { title: 'Column 8', dataIndex: 'address', key: '8' },
-      {
-        title: 'Action',
-        key: 'operation',
-        fixed: 'right',
-        width: 100,
-        scopedSlots: { customRender: 'action' },
-      },
-    ];
-    const data = [];
-    for (let i = 0; i < 100; i++) {
-      data.push({
-        key: i,
-        name: `Edrward ${i}`,
-        age: 32,
-        address: `London Park no. ${i}`,
-      });
-    }
-    
     export default {
         name: 'AdminManage',
         data() {
             return {
-            data,
-            columns,
+              form: {
+                name: '',
+                region: '',
+                date1: '',
+                date2: '',
+                delivery: false,
+                type: [],
+                resource: '',
+                desc: ''
+              }
             };
         },
         // 生命周期
         created() {
         },
+        methods: {
+          onSubmit(){
+              console.log('submit!');
+            },
+        },
         mounted() {
-            this.getData(res => {
-                this.loading = false;
-                this.data = res.results;
-            });
         },
         beforeCreate() {
         },
