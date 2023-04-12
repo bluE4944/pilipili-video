@@ -1,7 +1,7 @@
 <template>
     <div class="pt-4 pl-5 pr-5">
-      <a-card class="mb-4">
-        <a-form class="ant-advanced-search-form" :form="form" @submit="handleSearch">
+      <a-card class="mb-4 shadow-sm">
+        <a-form class="ant-advanced-search-form" :form="form" layout="horizontal" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" @submit="handleSearch">
           <a-row :gutter="24">
             <a-col
               :span="6"
@@ -163,26 +163,33 @@
           </a-row>
         </a-form>
       </a-card>
-
-      <a-card class="pb-0" title="视频管理">
-          <a-table bordered :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 160 }">
-            <a slot="action" slot-scope="text" style="color: blue;">action</a>
+ 
+      <a-card class="mb-1 shadow-sm" :bodyStyle="{paddingBottom:'0'}" title="视频管理">
+          <a-table bordered :columns="columns" :data-source="data" :scroll="{ x: 1500, y: 240 }">
+            <el-link type="primary" slot="action" slot-scope="text">action</el-link>
           </a-table>
       </a-card>
     </div>
 </template>
 <script>
+    // fade/zoom 等
+    import 'element-ui/lib/theme-chalk/base.css';
+    // collapse 展开折叠
+    import CollapseTransition from 'element-ui/lib/transitions/collapse-transition';
+    import Vue from 'vue'
+
+    Vue.component(CollapseTransition.name, CollapseTransition);
     const columns = [
-      { title: '电影名', width: 100, dataIndex: 'name', key: 'name', fixed: 'left' },
-      { title: '时长', width: 100, dataIndex: 'age', key: 'age', fixed: 'left' },
-      { title: 'Column 1', dataIndex: 'address', key: '1', width: 150 },
-      { title: 'Column 2', dataIndex: 'address', key: '2', width: 150 },
-      { title: 'Column 3', dataIndex: 'address', key: '3', width: 150 },
-      { title: 'Column 4', dataIndex: 'address', key: '4', width: 150 },
-      { title: 'Column 5', dataIndex: 'address', key: '5', width: 150 },
-      { title: 'Column 6', dataIndex: 'address', key: '6', width: 150 },
-      { title: 'Column 7', dataIndex: 'address', key: '7', width: 150 },
-      { title: 'Column 8', dataIndex: 'address', key: '8' },
+      { title: '视频名称', width: 100, dataIndex: 'name', key: 'name', fixed: 'left' },
+      { title: '导演', width: 100, dataIndex: 'age', key: 'age', fixed: 'left' },
+      { title: '简介', dataIndex: 'address', key: '1', width: 150 },
+      { title: '发布时间', dataIndex: 'address', key: '2', width: 150 },
+      { title: '时长', dataIndex: 'address', key: '3', width: 150 },
+      { title: '上传人', dataIndex: 'address', key: '4', width: 150 },
+      { title: '上传时间', dataIndex: 'address', key: '5', width: 150 },
+      { title: '修改人', dataIndex: 'address', key: '6', width: 150 },
+      { title: '修改时间', dataIndex: 'address', key: '7', width: 150 },
+      { title: '分集', dataIndex: 'address', key: '8' },
       {
         title: 'Action',
         key: 'operation',
@@ -262,12 +269,16 @@
 
 <style scoped lang="less">
 
-.ant-table-thead > tr > th {  
-  background: #f1f6ff !important;
-}
+  .ant-card-body{
+    padding-bottom: 0 !important;
+  }
 
-.ant-card .ant-card-body{
-  padding-bottom: 0;
-}
+  .ant-advanced-search-form .ant-form-item {
+      margin-bottom: 8px;
+  }
+
+  .ant-pagination {
+      margin: 16px 0 0 !important;
+  }
  
 </style>

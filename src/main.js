@@ -13,6 +13,10 @@ import * as types from './store/mutation-types';
 import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 import { Button } from 'element-ui';
+// fade/zoom 等
+import 'element-ui/lib/theme-chalk/base.css';
+// collapse 展开折叠
+import CollapseTransition from 'element-ui/lib/transitions/collapse-transition';
 
 //animate 动画
 import 'animate.css';
@@ -56,6 +60,7 @@ Vue.use(Antd);
 Vue.use(ElementUI);
 Vue.prototype.$ELEMENT = { size: 'small' };
 Vue.use(Button);
+Vue.component(CollapseTransition.name, CollapseTransition);
 
 new Vue({
   router,
