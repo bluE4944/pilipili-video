@@ -2,7 +2,7 @@
     <div class="pt-4 pl-5 pr-5">
       <a-card class="mb-4 shadow-sm">
         <a-form class="ant-advanced-search-form" :form="form" layout="horizontal" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" @submit="handleSearch">
-          <a-row :gutter="24">
+          <a-row :gutter="[24,16]">
             <a-col
               :span="6"
               >

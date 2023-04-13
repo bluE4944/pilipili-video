@@ -4,9 +4,15 @@
       <el-row>
 
       </el-row>
+      <el-tabs tab-position="left" type="card" style="height: 100%;">
+        <el-tab-pane label="用户管理">用户管理</el-tab-pane>
+        <el-tab-pane label="配置管理">配置管理</el-tab-pane>
+        <el-tab-pane label="角色管理">角色管理</el-tab-pane>
+        <el-tab-pane label="定时任务补偿">定时任务补偿</el-tab-pane>
+      </el-tabs>
       <el-form ref="form" :model="form" label-width="100px" >
         <el-form-item label="视频目录:">
-          <el-button type="primary">添加视频扫描目录</el-button>
+          <el-button type="primary" @click="showModal">添加视频扫描目录</el-button>
         </el-form-item>
         <el-form-item label="修改密码:">
           <el-col :span="11">
@@ -58,6 +64,16 @@
         </el-form-item>
       </el-form>
     </a-card>
+
+    <a-modal
+      title="Title"
+      :visible="visible"
+      :confirm-loading="confirmLoading"
+      @ok="handleOk"
+      @cancel="handleCancel"
+    >
+      <p>{{ ModalText }}</p>
+    </a-modal>
   </div>
 </template>
 <script>
@@ -74,7 +90,10 @@
                 type: [],
                 resource: '',
                 desc: ''
-              }
+              },
+              ModalText: '这是添加视频扫描目录画面',
+              visible: false,
+              confirmLoading: false,
             };
         },
         // 生命周期
@@ -83,7 +102,22 @@
         methods: {
           onSubmit(){
               console.log('submit!');
-            },
+          },
+          showModal() {
+            this.visible = true;
+          },
+          handleOk(e) {
+            this.ModalText = 'The modal will be closed after two seconds';
+            this.confirmLoading = true;
+            setTimeout(() => {
+              this.visible = false;
+              this.confirmLoading = false;
+            }, 2000);
+          },
+          handleCancel(e) {
+            console.log('Clicked cancel button');
+            this.visible = false;
+          },
         },
         mounted() {
         },
