@@ -127,6 +127,7 @@ export default {
   },
   mounted() {
     this.reCalVideoHeight();
+    window.addEventListener('resize', this.reCalVideoHeight);
     this.videoId = this.$route.params.videoId;
     console.log(this.videoId);
   },
@@ -134,7 +135,11 @@ export default {
     this.isPc = this.$store.state.isPc;
     this.$store.state.showLoading = false;
     this.initVideo();
-  }
+  },
+  beforeDestroy() {
+    //在生命周期结束的时候销毁
+    window.removeEventListener('resiz',this.reCalVideoHeight);
+  },
 }
 </script>
 

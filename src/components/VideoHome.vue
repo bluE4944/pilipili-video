@@ -3,7 +3,9 @@
         <a-card :bordered="false">
             <!--检索框-->
             <a-row type="flex" justify="center" class="mb-4">
-                <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-25 bg-a-25" @search="onSearch" :loading="$store.state.showLoading"/>
+                <a-col lg="12" sm="22" xs="22">
+                    <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-100 bg-a-25" @search="onSearch" :loading="$store.state.showLoading"/>
+                </a-col>
             </a-row>
             
             <!--电影列表-->
