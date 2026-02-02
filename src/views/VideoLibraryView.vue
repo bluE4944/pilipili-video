@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="page video-library">
     <video-upload-panel
       :existing-keys="existingKeys"
@@ -33,6 +33,7 @@
           @update-meta="updateVideoMeta"
           @clear-history="clearHistory"
           @rebind-source="rebindSource"
+          @rebind-collection="rebindCollection"
           @remove="removeVideo"
         />
       </a-tab-pane>
@@ -56,6 +57,7 @@
           @update-meta="updateVideoMeta"
           @clear-history="clearHistory"
           @rebind-source="rebindSource"
+          @rebind-collection="rebindCollection"
           @remove="removeVideo"
         />
       </a-tab-pane>
@@ -68,7 +70,14 @@ import VideoUploadPanel from '@/components/video/VideoUploadPanel.vue';
 import VideoFilters from '@/components/video/VideoFilters.vue';
 import VideoGrid from '@/components/video/VideoGrid.vue';
 import CollectionManager from '@/components/video/CollectionManager.vue';
-import { buildVideoKey, extractCollectionInfo } from '@/utils/video';
+import {
+  buildVideoKey,
+  extractCollectionInfo,
+  getVideoDuration,
+  buildVideoSourceFromFile,
+  sortByEpisode,
+  isVideoFile,
+} from '@/utils/video';
 
 export default {
   name: 'VideoLibraryView',
@@ -228,6 +237,78 @@ export default {
         episodeNumber,
       });
       this.$message.success('已重新绑定文件');
+    },
+    async rebindCollection(payload) {
+      const { collectionName, files } = payload || {};
+      const targetVideos = this.videos.filter((video) => video.collectionName === collectionName);
+      if (!targetVideos.length) {
+        this.$message.warning('未找到可绑定的合集');
+        return;
+      }
+      const validFiles = (files || []).filter(isVideoFile);
+      if (!validFiles.length) {
+        this.$message.warning('请选择有效的视频文件');
+        return;
+      }
+      const fileInfos = await Promise.all(
+        validFiles.map(async (file) => {
+          const duration = await getVideoDuration(file);
+          const info = extractCollectionInfo(file.name);
+          return {
+            file,
+            duration,
+            episodeNumber: info.episodeNumber || 0,
+          };
+        })
+      );
+      const byEpisode = {};
+      targetVideos.forEach((video) => {
+        const ep = Number(video.episodeNumber || 0);
+        if (ep) {
+          byEpisode[ep] = video;
+        }
+      });
+      const updates = [];
+      const usedIds = new Set();
+      const unmatched = [];
+      const buildPatch = (target, info) => ({
+        id: target.id,
+        sourceUrl: buildVideoSourceFromFile(info.file),
+        duration: info.duration,
+        fileName: info.file.name,
+        size: info.file.size,
+        type: info.file.type,
+        collectionName: target.collectionName || collectionName,
+        episodeNumber: info.episodeNumber || target.episodeNumber || 0,
+      });
+      fileInfos.forEach((info) => {
+        const ep = Number(info.episodeNumber || 0);
+        const target = ep ? byEpisode[ep] : null;
+        if (target && !usedIds.has(target.id)) {
+          updates.push(buildPatch(target, info));
+          usedIds.add(target.id);
+        } else {
+          unmatched.push(info);
+        }
+      });
+      const remaining = targetVideos.filter((video) => !usedIds.has(video.id)).slice().sort(sortByEpisode);
+      unmatched.forEach((info, index) => {
+        const target = remaining[index];
+        if (!target) return;
+        updates.push(buildPatch(target, info));
+        usedIds.add(target.id);
+      });
+      if (!updates.length) {
+        this.$message.warning('未匹配到可绑定的文件');
+        return;
+      }
+      const map = updates.reduce((acc, item) => {
+        acc[item.id] = item;
+        return acc;
+      }, {});
+      const next = this.videos.map((video) => (map[video.id] ? { ...video, ...map[video.id] } : video));
+      this.$store.dispatch('videoLibrary/setVideos', next);
+      this.$message.success(`已绑定 ${updates.length} 个文件`);
     },
     removeVideo(video) {
       const next = this.videos.filter((item) => item.id !== video.id);

@@ -13,6 +13,7 @@
       @update-meta="$emit('update-meta', $event)"
       @clear-history="$emit('clear-history', $event)"
       @rebind-source="$emit('rebind-source', $event)"
+      @rebind-collection="$emit('rebind-collection', $event)"
       @remove="$emit('remove', $event)"
     />
     <a-empty v-if="!videos.length" description="暂无视频" />

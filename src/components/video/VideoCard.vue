@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <a-card class="video-card" hoverable>
     <div class="cover" @click="toPlay">
       <div class="cover-inner">
@@ -33,7 +33,7 @@
         <a-menu slot="overlay">
           <a-menu-item @click="showEditor = true">编辑分类/标签</a-menu-item>
           <a-menu-item @click="emitClearHistory">清除播放记忆</a-menu-item>
-          <a-menu-item @click="triggerRebind">重新绑定文件</a-menu-item>
+          <a-menu-item @click="triggerRebind">{{ rebindLabel }}</a-menu-item>
           <a-menu-item @click="emitRemove">删除记录</a-menu-item>
         </a-menu>
       </a-dropdown>
@@ -74,7 +74,7 @@
         </div>
       </div>
     </a-modal>
-    <input ref="rebindInput" class="hidden-input" type="file" accept="video/*" @change="onRebind" />
+    <input ref="rebindInput" class="hidden-input" type="file" accept="video/*" :multiple="isCollectionCard" @change="onRebind" />
   </a-card>
 </template>
 
@@ -117,6 +117,12 @@ export default {
   computed: {
     titleText() {
       return this.video.displayTitle || this.video.title;
+    },
+    isCollectionCard() {
+      return Boolean(this.video.displayTitle && this.video.collectionName);
+    },
+    rebindLabel() {
+      return this.isCollectionCard ? '重新绑定合集' : '重新绑定文件';
     },
     categoryName() {
       return this.categoryMap[this.video.categoryId] || '';
@@ -182,12 +188,22 @@ export default {
       this.$refs.rebindInput && this.$refs.rebindInput.click();
     },
     async onRebind(event) {
-      const file = (event.target.files || [])[0];
+      const files = Array.from(event.target.files || []);
       event.target.value = '';
-      if (!file || !isVideoFile(file)) {
+      if (!files.length) return;
+      const validFiles = files.filter(isVideoFile);
+      if (!validFiles.length) {
         this.$message.warning('请选择有效的视频文件');
         return;
       }
+      if (this.isCollectionCard) {
+        this.$emit('rebind-collection', {
+          collectionName: this.video.collectionName,
+          files: validFiles,
+        });
+        return;
+      }
+      const file = validFiles[0];
       const duration = await getVideoDuration(file);
       this.$emit('rebind-source', {
         id: this.video.id,
