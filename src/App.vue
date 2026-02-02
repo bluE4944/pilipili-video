@@ -1,172 +1,130 @@
 <template>
-  <div id="app" >
-    <div class="first-loading-wrp bg" v-if="$store.state.showLoading">
-        <a-spin tip=" Loading..." :indicator="indicator" size="large" />
-    </div>
-      <!-- 桌面端 -->
-      <a-layout  class="layout" v-if="isPc">
-          <a-layout-header class="shadow-sm bg-color" :style="{ position: 'fixed', zIndex: 99, width: '100%',background: '#fafafa',height:'55px',lineHeight: '55px'}">
-              <pc-head />
-          </a-layout-header>
-          <a-layout-content style="margin-top: 55px;">
-            <a-spin :spinning="$store.state.showLoading" :indicator="indicatorNo">
-              <keep-alive>
-                <router-view v-if="$route.meta.keepAlive" class="container-fluid"/>
-              </keep-alive>
-              <router-view v-if="!$route.meta.keepAlive" class="container-fluid"/>
-                <a-back-top />  
-            </a-spin>
-          </a-layout-content>
-          <a-layout-footer v-if="footerRouteName.includes($route.name)" :style="{ textAlign: 'center',background:'none' }">
-              <a-divider />
-              pilipili-video ©2023 Created by Liam
-          </a-layout-footer>
-      </a-layout>
-
-      <!-- 移动端 -->
-      <a-layout style="min-height: 100vh ; background:#fafafa " v-if="!isPc">
-          <!-- <a-layout-sider style="background:#fafafa;"
-                          v-model="collapsed"
-                          collapsible
-                          :collapsedWidth="0"
-                          :defaultCollapsed=true
-                          :zeroWidthTriggerStyle="{
-                              backgroundImage: 'linear-gradient(120deg,#a1c4fd 0%, #c2e9fb 100%)',
-                              top: 10,
-                              paddingBottom: 10,
-                          }"
-                          :trigger="indicator"
-                          >
-              <mobile-head/>
-          </a-layout-sider> -->
-          <a-layout>
-              <a-layout-header class="bg-color" :style="{ position: 'fixed', zIndex: 99, width: '100%',background: '#fafafa',height:'55px',padding: '0 30px',lineHeight: '55px'}">
-                <mobile-head/>
-              </a-layout-header>
-              <a-layout-content style="margin-top: 55px;">
-                <a-spin class="center" :spinning="$store.state.showLoading" :indicator="indicator" tip=" Loading..." size="large">
-                    <router-view/>
-                </a-spin>
-              </a-layout-content>
-              <a-layout-footer v-if="footerRouteName.includes($route.name)" :style="{ textAlign: 'center',background:'none' }">
-                <a-divider/>
-                  pilipili-video ©2023 Created by Liam
-              </a-layout-footer>
-          </a-layout>
-      </a-layout>
-      <a-back-top />
-  </div>
+  <n-config-provider :theme="theme" :theme-overrides="themeOverrides">
+    <n-global-style />
+    <n-loading-bar-provider>
+      <n-message-provider>
+        <n-notification-provider>
+          <n-dialog-provider>
+            <n-layout class="app-layout">
+              <n-layout-header class="app-header" bordered>
+                <AppHeader />
+              </n-layout-header>
+              <n-layout-content class="app-content">
+                <router-view v-slot="{ Component }">
+                  <transition name="fade" mode="out-in">
+                    <component :is="Component" />
+                  </transition>
+                </router-view>
+              </n-layout-content>
+              <n-layout-footer class="app-footer" v-if="showFooter">
+                <div class="footer-content">
+                  PiliPili Video ©2024 Created with Vue3 + TypeScript
+                </div>
+              </n-layout-footer>
+            </n-layout>
+          </n-dialog-provider>
+        </n-notification-provider>
+      </n-message-provider>
+    </n-loading-bar-provider>
+  </n-config-provider>
 </template>
 
-<script>
-  import PcHead from "@/components/Head";
-  import MobileHead from "@/components/MobileHead";
-  import {isMobile,isPhone,_isMobile} from "@/utils/utils"
+<script setup lang="ts">
+import { computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { darkTheme, type GlobalTheme, type GlobalThemeOverrides } from 'naive-ui'
+import { useThemeStore } from '@/store/theme'
+import AppHeader from '@/components/AppHeader.vue'
 
-  export default {
-      isSubMenu: false,
-      components:{
-          PcHead,
-          MobileHead,
-      },
-      data() {
-          return {
-              top: 5,
-              isPc: true,
-              pathName: '',
-              collapsed: true,
-              indicator: <a-icon type="play-circle"  spin />,
-              indicatorNo: <a-icon type="1"  />,
-              banner: "",
-              footerRouteName: ["home", "videoHome", "videoDetail", ],
-          };
-      },
-      methods:{
-        loadTextFromFile(){
-            var file = "/assets/banner.txt";
-            var reader = new FileReader();
-            reader.readAsText(file);
-            reader.onload = function(e) {
-                this.banner = e.target.result;
-                console.log(this.banner);
-            }.bind(this);
-        },
-        
-      },
-      mounted() {
-          this.pathName = this.$route.name;
-          console.log(this.pathName);
-      },
-      created() {
-          //pc
-          this.isPc = !_isMobile();
-          this.isPc = !isMobile;
-          console.log('isPhone:',isPhone);
-          console.log('isMobile:',isMobile);
-          console.log('isPc',this.$store.getters.isPc);
-        //   this.loadTextFromFile();
-          console.log(this.banner);
-          setTimeout(() => {
-                    this.$store.dispatch(this.$types.HIDE_LOADING);
-                },4000);
-      }
+const route = useRoute()
+const themeStore = useThemeStore()
 
-  };
+const theme = computed<GlobalTheme | null>(() => {
+  return themeStore.currentTheme === 'dark' ? darkTheme : null
+})
+
+const themeOverrides = computed<GlobalThemeOverrides>(() => {
+  return {
+    common: {
+      primaryColor: '#00a1d6',
+      primaryColorHover: '#00b5e5',
+      primaryColorPressed: '#0084b4'
+    }
+  }
+})
+
+const showFooter = computed(() => {
+  return ['home', 'video'].includes(route.name as string)
+})
 </script>
 
 <style lang="scss">
-    #app {
-      font-family: "HarmonyOS Sans Medium", sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      color: #2c3e50;
-      .ant-table-thead > tr > th {  
-        background: #f1f6ff !important;
-      }
-    }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-    body {
-      .ant-table-thead > tr > th {  
-        background: #f1f6ff !important;
-      }
-    }
+html,
+body {
+  height: 100%;
+  font-family: "HarmonyOS Sans Medium", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
+#app {
+  height: 100%;
+}
 
-    nav {
+.app-layout {
+  min-height: 100vh;
+}
 
-      a {
-        font-weight: bold;
-        color: #546497;
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 55px;
+  background: var(--n-color);
+}
 
-        &.router-link-exact-active {
-          color: #207bd0;
-        }
-      }
-    }
+.app-content {
+  margin-top: 55px;
+  min-height: calc(100vh - 55px);
+  padding: 20px;
+}
 
-    .ant-divider-horizontal{
-        margin: 14px 0;
-    }
+.app-footer {
+  padding: 20px;
+  text-align: center;
+  background: var(--n-color);
+}
 
-    .first-loading-wrp {
-            position: absolute;
-            width: 100%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+.footer-content {
+  color: var(--n-text-color);
+  opacity: 0.6;
+}
 
-            height: 100%;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-        }
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 
-    .bg {
-        position: fixed;
-        background-color: rgba(200, 200, 200, 0.1);
-        z-index: 999999;
-    }
+[data-theme="dark"] {
+  --n-color: #1a1a1a;
+  --n-text-color: #e5e5e5;
+}
 
+[data-theme="light"] {
+  --n-color: #ffffff;
+  --n-text-color: #333333;
+}
 </style>

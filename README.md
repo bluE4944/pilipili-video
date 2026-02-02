@@ -1,36 +1,118 @@
-# pilipili-video
-p站-前端
+# PiliPili Video
 
-## Project setup
-```
+基于 Vue3 + TypeScript 开发的仿 B 站风格的局域网视频网站。
+
+## ✨ 特性
+
+- 🎬 **视频播放**: 支持本地视频播放，自动识别并整合视频合集
+- 📝 **播放记忆**: 自动记录播放进度，下次继续观看
+- 🔄 **自动下一集**: 播放完成后自动切换到下一集
+- 🎨 **主题切换**: 支持浅色/深色主题，可跟随系统设置
+- 💬 **评论功能**: 支持视频评论（本地存储）
+- 👤 **账号系统**: 支持注册、登录、游客模式
+- 📱 **响应式设计**: 适配 PC 和移动端
+
+## 🛠️ 技术栈
+
+- **框架**: Vue 3.3.4 + TypeScript 5.2.2
+- **UI 框架**: Naive UI 2.34.3
+- **视频播放**: Video.js 8.6.1
+- **状态管理**: Pinia 2.1.7
+- **路由**: Vue Router 4.2.5
+- **数据存储**: IndexedDB (idb) + localStorage
+
+## 📦 安装
+
+```bash
+# 克隆项目
+git clone <repository-url>
+
+# 进入项目目录
+cd pilipili-video
+
+# 安装依赖
 npm install
 ```
 
-### Compiles and hot-reloads for development
-```
+## 🚀 运行
+
+### 开发环境
+
+```bash
 npm run serve
 ```
 
-### Compiles and minifies for production
+访问 `http://localhost:8080`
+
+### 局域网访问
+
+开发服务器默认监听 `0.0.0.0:8080`，同一局域网内的设备可通过以下地址访问：
+
 ```
+http://[你的IP地址]:8080
+```
+
+例如：`http://192.168.1.100:8080`
+
+### 生产构建
+
+```bash
 npm run build
 ```
 
-### Lints and fixes files
-```
-npm run lint
-```
+构建文件输出到 `dist/` 目录。
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## 📖 使用说明
 
+### 添加视频
 
+1. 进入"视频"页面
+2. 点击"添加视频"按钮
+3. 选择本地视频文件（支持多选）
+4. 系统会自动识别并整合为视频合集
 
-## About git
+### 播放视频
 
-```bash
-git add .
-git commit -m 'desc'
-git push origin main
-```
+1. 点击视频卡片进入详情页
+2. 自动加载上次播放位置（如有）
+3. 点击分集列表切换不同集数
+4. 播放完成后自动切换到下一集
 
+### 主题切换
+
+点击顶部导航栏的主题切换按钮，或在设置页面选择主题模式。
+
+### 账号功能
+
+- 点击用户按钮可登录/注册
+- 或使用游客模式（无需注册）
+
+## 📚 文档
+
+- [技术选型说明](./docs/技术选型说明.md)
+- [功能实现说明](./docs/功能实现说明.md)
+- [运行说明](./docs/运行说明.md)
+
+## ⚠️ 注意事项
+
+1. **文件系统限制**: 由于浏览器安全限制，无法直接访问本地文件系统。当前版本需要通过文件选择器添加视频文件。
+
+2. **文件持久化**: 刷新页面后需要重新选择视频文件。视频元数据会保留在 IndexedDB 中。
+
+3. **视频格式**: 推荐使用 MP4 格式，其他格式依赖浏览器原生支持。
+
+## 🔮 后续扩展
+
+- [ ] Electron 桌面应用（支持文件系统访问）
+- [ ] 后端 API 集成（文件扫描、用户认证）
+- [ ] 弹幕功能
+- [ ] 视频转码服务
+- [ ] 字幕支持
+
+## 📄 许可证
+
+MIT License
+
+## 👨‍💻 作者
+
+Created with Vue3 + TypeScript
