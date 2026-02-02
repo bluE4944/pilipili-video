@@ -14,7 +14,7 @@
                 <router-view v-if="$route.meta.keepAlive" class="container-fluid"/>
               </keep-alive>
               <router-view v-if="!$route.meta.keepAlive" class="container-fluid"/>
-                <a-back-top />  
+                <a-back-top />
             </a-spin>
           </a-layout-content>
           <a-layout-footer v-if="footerRouteName.includes($route.name)" :style="{ textAlign: 'center',background:'none' }">
@@ -83,15 +83,15 @@
       },
       methods:{
         loadTextFromFile(){
-            var file = "/assets/banner.txt";
-            var reader = new FileReader();
+            let file = "/assets/banner.txt";
+            let reader = new FileReader();
             reader.readAsText(file);
             reader.onload = function(e) {
                 this.banner = e.target.result;
                 console.log(this.banner);
             }.bind(this);
         },
-        
+
       },
       mounted() {
           this.pathName = this.$route.name;
@@ -120,13 +120,13 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       color: #2c3e50;
-      .ant-table-thead > tr > th {  
+      .ant-table-thead > tr > th {
         background: #f1f6ff !important;
       }
     }
 
     body {
-      .ant-table-thead > tr > th {  
+      .ant-table-thead > tr > th {
         background: #f1f6ff !important;
       }
     }

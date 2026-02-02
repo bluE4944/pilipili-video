@@ -15,7 +15,7 @@ const public_key:string = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCCvcEblIslDk91/
  * 计算高 16：9
  * @param width 宽
  */
-export function calculateHigh(width: number | string | Decimal): number{
+export function calculateHigh(width: number | string | Decimal): number | null{
     if(!width){
         return null;
     }
@@ -24,7 +24,7 @@ export function calculateHigh(width: number | string | Decimal): number{
 
 /**
  * 是否为移动设备？
- * @returns 
+ * @returns
  */
 export function _isMobile(): boolean {
     let flag = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i)

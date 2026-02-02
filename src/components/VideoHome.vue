@@ -7,7 +7,7 @@
                     <a-input-search allowClear v-model="formDate.title"  placeholder="input search text"  class="w-100 bg-a-25" @search="onSearch" :loading="$store.state.showLoading"/>
                 </a-col>
             </a-row>
-            
+
             <!--电影列表-->
             <a-list :grid="{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 4, xl: 5, xxl: 5 }" :data-source="data">
                 <div
@@ -32,12 +32,12 @@
                             {{item.description}}
                         </template>
                     </a-card-meta>
-                    
+
                 </a-card>
                 </a-list-item>
             </a-list>
         </a-card>
-        
+
     </div>
 
 </template>
@@ -77,7 +77,6 @@
             return {
                 loading: true,
                 data,
-                loading: true,
                 loadingMore: false,
                 showLoadingMore: true,
                 formDate:{
@@ -101,7 +100,7 @@
                 })
             },
             getData(callback) {
-                
+
             },
             //加载更多
             onLoadMore() {
