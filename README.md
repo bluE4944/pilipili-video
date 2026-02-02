@@ -1,30 +1,41 @@
-# pilipili-video
-p站-前端
+﻿# pilipili-video
 
-## Project setup
-```
+本项目为本地视频资源网站前端，新增 Markdown 博客功能，基于 Vue 2 + Vue CLI。
+
+## 运行步骤
+
+```bash
 npm install
-```
-
-### Compiles and hot-reloads for development
-```
 npm run serve
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
+## 功能说明
 
-### Lints and fixes files
-```
-npm run lint
-```
+### 视频功能
+- 视频上传与导入：支持单个/批量上传，支持选择文件夹模拟本地扫描。
+- 元数据保存：文件名、大小、时长、上传时间、播放路径等信息使用 localStorage 保存。
+- 分类/标签管理：支持创建、编辑、删除分类与标签。
+- 播放记忆：自动保存上次播放位置，支持清除。
+- 倍速播放：0.5x/1x/1.25x/1.5x/2x，支持保存偏好。
+- 收藏/点赞：视频可收藏与点赞，收藏列表独立展示。
+- 自动合集：根据文件名识别合集与集数，支持合并、拆分与自动下一集。
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+### 博客功能
+- Markdown 上传解析：自动提取标题、摘要并渲染 HTML。
+- 博客目录：按发布时间倒序展示，含阅读量/点赞/评论数。
+- 博客检索：按标题或正文关键词实时筛选。
+- 博客阅读：代码高亮、图片、列表等 Markdown 语法展示。
+- 评论与点赞：支持发布评论、评论点赞与博客点赞。
 
+## 使用说明（核心入口）
 
+- 首页：概览与快速入口。
+- 视频库：点击“上传视频/导入文件夹”导入本地视频；可在“管理分类/标签”中维护分类与标签；“合集管理”进行合并/拆分。
+- 播放页面：自动断点续播，倍速设置；播放结束自动切换下一集（如存在）。
+- 博客目录：点击“上传 Markdown”导入 .md 文件，搜索框可检索标题或正文。
+
+## 注意事项
+- 受浏览器安全限制，视频文件无法长期持久化保存，刷新页面后如无法播放请在视频库中“重新绑定文件”。
 
 ## About git
 
@@ -33,4 +44,3 @@ git add .
 git commit -m 'desc'
 git push origin main
 ```
-

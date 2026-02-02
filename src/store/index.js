@@ -3,6 +3,8 @@ import Vuex from 'vuex'
 import state from './state';
 import user from './modules/user';
 import pilipili from './modules/pilipili';
+import videoLibrary from './modules/videoLibrary';
+import blogLibrary from './modules/blogLibrary';
 import * as types from './mutation-types';
 import { Loading } from 'element-ui';
 
@@ -52,5 +54,7 @@ export default new Vuex.Store({
   modules: {
     user,
     pilipili,
+    videoLibrary,
+    blogLibrary,
   }
 })

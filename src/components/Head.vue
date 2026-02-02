@@ -1,32 +1,24 @@
-<template>
+﻿<template>
   <div>
     <a-row type="flex" class="bg-color" justify="space-between" align="middle">
-
       <router-link to="/"><img alt="pilipili logo" class="logo" src="../assets/PILIPILI-logo-full.png"></router-link>
       <a-menu
-              mode="horizontal"
-              :default-selected-keys="['1']"
-              :style="menuStyle"
-              class="mb-1 bg-color"
-              @change="routerViewChange"
+        mode="horizontal"
+        :selected-keys="[activeKey]"
+        :style="menuStyle"
+        class="mb-1 bg-color"
       >
-        <a-menu-item key="1">
-          <router-link class="link" to="/"><span>首页</span></router-link>
+        <a-menu-item key="home">
+          <router-link class="link" to="/">首页</router-link>
         </a-menu-item>
-        <a-menu-item  key="2" >
-          <router-link class="link" to="/videoHome">视频</router-link>
+        <a-menu-item key="videos">
+          <router-link class="link" to="/videos">视频库</router-link>
         </a-menu-item>
-        <a-menu-item key="3">
-          <router-link class="link" to="/about">About</router-link>
+        <a-menu-item key="blogs">
+          <router-link class="link" to="/blogs">博客</router-link>
         </a-menu-item>
-        <a-menu-item key="4">
-          <router-link class="link" to="/manageUsers">用户管理</router-link>
-        </a-menu-item>
-        <a-menu-item key="5">
-          <router-link class="link" to="/manageVideos">视频管理</router-link>
-        </a-menu-item>
-        <a-menu-item key="6">
-          <router-link class="link" to="/adminManage">超级管理员</router-link>
+        <a-menu-item key="about">
+          <router-link class="link" to="/about">关于</router-link>
         </a-menu-item>
       </a-menu>
 
@@ -38,32 +30,33 @@
           </a-space>
           <a-menu slot="overlay" @click="onClick">
             <a-menu-item class="p-2 pr-3 pl-3">
-              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#"
-                ><a-space>
-                  <a-icon class="p-1" type="user" /> 
+              <a class="ant-btn-link link" href="#">
+                <a-space>
+                  <a-icon class="p-1" type="user" />
                   <span class="pr-1">个人中心</span>
-                </a-space> </a>
+                </a-space>
+              </a>
             </a-menu-item>
             <a-menu-item class="p-2 pr-3 pl-3">
-              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#" 
-                ><a-space>
-                  <a-icon class="p-1" type="clock-circle" /> 
+              <a class="ant-btn-link link" href="#">
+                <a-space>
+                  <a-icon class="p-1" type="clock-circle" />
                   <span class="pr-1">历史记录</span>
                 </a-space>
-                </a>
+              </a>
             </a-menu-item>
             <a-menu-item class="p-2 pr-3 pl-3">
-              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#" 
-                ><a-space>
-                  <a-icon class="p-1" type="video-camera" />
-                  <span class="pr-1">投稿管理</span>
-                </a-space>
-                </a>
-            </a-menu-item>
-            <a-menu-item class="p-2 pr-3 pl-3">
-              <a target="_blank" rel="noopener noreferrer" class="ant-btn-link link" href="#">
+              <a class="ant-btn-link link" href="#">
                 <a-space>
-                  <a-icon class="p-1" type="export" /> 
+                  <a-icon class="p-1" type="video-camera" />
+                  <span class="pr-1">视频管理</span>
+                </a-space>
+              </a>
+            </a-menu-item>
+            <a-menu-item class="p-2 pr-3 pl-3">
+              <a class="ant-btn-link link" href="#">
+                <a-space>
+                  <a-icon class="p-1" type="export" />
                   <span class="pr-1">退出登录</span>
                 </a-space>
               </a>
@@ -71,13 +64,12 @@
           </a-menu>
         </a-dropdown>
       </a-col>
-
     </a-row>
   </div>
 </template>
 <script>
   import Vue from 'vue'
-  import { Menu, Layout, Icon, Breadcrumb } from 'ant-design-vue' // 按需引入组件并注册
+  import { Menu, Layout, Icon, Breadcrumb } from 'ant-design-vue'
   Vue.use(Layout)
   export default {
     name: 'Head',
@@ -94,7 +86,7 @@
       return {
         menuStyle:{
           fontWeight: 'bold',
-          fontSize: '17px',
+          fontSize: '16px',
           border: 0,
           padding: '0 10px',
           background: 'none',
@@ -106,14 +98,19 @@
         src:require('../assets/1464.jpg'),
       }
     },
+    computed: {
+      activeKey() {
+        const path = this.$route.path || '/';
+        if (path.startsWith('/videos')) return 'videos';
+        if (path.startsWith('/blogs')) return 'blogs';
+        if (path.startsWith('/about')) return 'about';
+        return 'home';
+      }
+    },
     methods: {
-      routerViewChange(){
-            debugger;
-            this.$store.state.showLoading = true;
-        },
-        onClick({ key }) {
-          console.log(`Click on item ${key}`);
-        },
+      onClick({ key }) {
+        console.log(`Click on item ${key}`);
+      },
     }
   }
 </script>
@@ -123,11 +120,7 @@
   }
 
   ::v-deep .ant-menu-item{
-    padding: 0 5px !important;
+    padding: 0 6px !important;
   }
 
 </style>
-
-
-
-

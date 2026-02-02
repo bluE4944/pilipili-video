@@ -78,7 +78,7 @@
               indicator: <a-icon type="play-circle"  spin />,
               indicatorNo: <a-icon type="1"  />,
               banner: "",
-              footerRouteName: ["home", "videoHome", "videoDetail", ],
+              footerRouteName: ["home", "videos", "videoPlayer", "blogs", "blogDetail"],
           };
       },
       methods:{
@@ -104,11 +104,12 @@
           console.log('isPhone:',isPhone);
           console.log('isMobile:',isMobile);
           console.log('isPc',this.$store.getters.isPc);
+          this.$store.dispatch(this.$types.IS_PC, this.isPc);
+          this.$store.dispatch('videoLibrary/init');
+          this.$store.dispatch('blogLibrary/init');
         //   this.loadTextFromFile();
           console.log(this.banner);
-          setTimeout(() => {
-                    this.$store.dispatch(this.$types.HIDE_LOADING);
-                },4000);
+          setTimeout(() => this.$store.dispatch(this.$types.HIDE_LOADING), 1000);
       }
 
   };

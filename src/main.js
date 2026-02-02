@@ -34,6 +34,7 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import './style/custom.css'
+import 'highlight.js/styles/github.css';
 
 import Viewer from 'v-viewer';
 import 'viewerjs/dist/viewer.css';
@@ -45,6 +46,7 @@ Viewer.setDefaults({
 
 
 Vue.config.productionTip = false;
+Vue.prototype.$types = types;
 
 // Install BootstrapVue
 Vue.use(BootstrapVue);
@@ -55,7 +57,6 @@ Vue.use(VueCoreVideoPlayer);
 
 Vue.use(Antd);
 
-// Vue.use(VueVideoPlayer);
 
 Vue.use(ElementUI);
 Vue.prototype.$ELEMENT = { size: 'small' };
@@ -67,5 +68,3 @@ new Vue({
   store,
   render: h => h(App)
 }).$mount('#app');
-
-Vue.prototype.$types = types;

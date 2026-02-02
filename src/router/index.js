@@ -1,7 +1,10 @@
-import Vue from 'vue'
+﻿import Vue from 'vue'
 import VueRouter from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import VideoDetail from "@/components/VideoDetail";
+import VideoLibraryView from '../views/VideoLibraryView.vue'
+import VideoPlayerView from '../views/VideoPlayerView.vue'
+import BlogListView from '../views/BlogListView.vue'
+import BlogDetailView from '../views/BlogDetailView.vue'
 
 Vue.use(VueRouter)
 
@@ -9,51 +12,50 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: HomeView,
+    meta: { keepAlive: true }
   },
-  //主页
   {
     path: '/home',
-    name: 'home',
-    component: HomeView
+    redirect: '/'
   },
-  //关于页面
   {
     path: '/about',
     name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
   },
-  //视频主页
   {
-    path: '/videoHome',
-    name: 'videoHome',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../components/VideoHome.vue'),
+    path: '/videos',
+    name: 'videos',
+    component: VideoLibraryView,
+    meta: { keepAlive: true }
   },
-  //子画面 - 视频详情页
   {
-    path: '/videoDetail',
-    name: 'videoDetail',
-    component: () => import(/* webpackChunkName: "about" */ '../components/VideoDetail.vue'),
+    path: '/videos/:id',
+    name: 'videoPlayer',
+    component: VideoPlayerView,
   },
-  //管理人员页
+  {
+    path: '/blogs',
+    name: 'blogs',
+    component: BlogListView,
+    meta: { keepAlive: true }
+  },
+  {
+    path: '/blogs/:id',
+    name: 'blogDetail',
+    component: BlogDetailView,
+  },
   {
     path: '/manageUsers',
     name: 'manageUsers',
     component: () => import(/* webpackChunkName: "about" */ '../views/manage/ManageUsers.vue'),
   },
-  //管理视频页
   {
     path: '/manageVideos',
     name: 'manageVideos',
     component: () => import(/* webpackChunkName: "about" */ '../views/manage/ManageVideos.vue'),
   },
-  //管理员页
   {
     path: '/adminManage',
     name: 'adminManage',
