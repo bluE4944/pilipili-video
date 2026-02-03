@@ -170,6 +170,7 @@ import CommentSection from '@/components/CommentSection.vue'
 import DanmakuPanel from '@/components/DanmakuPanel.vue'
 import { formatFileSize, formatDuration } from '@/utils/format'
 import { isNumericId } from '@/utils/id'
+import { getErrorMessage } from '@/utils/error'
 import { videoApi, videoSearchApi, videoStatisticsApi } from '@/api/video'
 import { likeApi, collectApi } from '@/api/interaction'
 import type { BackendVideo, VideoCollection, VideoFile } from '@/types'
@@ -345,26 +346,18 @@ const loadRelatedVideos = async (videoId: string) => {
 
 const toggleLike = async () => {
   if (!currentVideoId.value) return
-  if (!isNumericId(currentVideoId.value)) {
-    message.warning('本地视频暂不支持点赞')
-    return
-  }
   const next = !isLiked.value
   try {
     await likeApi.setLike(currentVideoId.value, next)
     isLiked.value = next
     message.success(next ? '已点赞' : '已取消点赞')
   } catch (error) {
-    message.error('点赞操作失败')
+    message.error(getErrorMessage(error))
   }
 }
 
 const toggleCollect = async () => {
   if (!currentVideoId.value) return
-  if (!isNumericId(currentVideoId.value)) {
-    message.warning('本地视频暂不支持收藏')
-    return
-  }
   const next = !isCollected.value
   try {
     if (next) {
@@ -375,7 +368,7 @@ const toggleCollect = async () => {
     isCollected.value = next
     message.success(next ? '已收藏' : '已取消收藏')
   } catch (error) {
-    message.error('收藏操作失败')
+    message.error(getErrorMessage(error))
   }
 }
 

@@ -13,15 +13,7 @@ export const useFolderStore = defineStore('folder', () => {
       folders.value = await folderApi.getFolders()
     } catch (error) {
       console.error('Failed to load folder configs:', error)
-      const stored = localStorage.getItem('folderConfigs')
-      if (stored) {
-        try {
-          folders.value = JSON.parse(stored)
-        } catch (e) {
-          console.error('Failed to parse stored folder configs:', e)
-          folders.value = []
-        }
-      }
+      throw error
     }
   }
 
@@ -32,14 +24,7 @@ export const useFolderStore = defineStore('folder', () => {
       return newFolder
     } catch (error) {
       console.error('Failed to add folder:', error)
-      const newFolder: FolderConfig = {
-        ...config,
-        id: Date.now().toString(),
-        createdAt: Date.now()
-      }
-      folders.value.push(newFolder)
-      localStorage.setItem('folderConfigs', JSON.stringify(folders.value))
-      return newFolder
+      throw error
     }
   }
 
@@ -52,11 +37,7 @@ export const useFolderStore = defineStore('folder', () => {
       }
     } catch (error) {
       console.error('Failed to delete folder:', error)
-      const index = folders.value.findIndex(f => f.id === id)
-      if (index > -1) {
-        folders.value.splice(index, 1)
-        localStorage.setItem('folderConfigs', JSON.stringify(folders.value))
-      }
+      throw error
     }
   }
 
@@ -70,12 +51,6 @@ export const useFolderStore = defineStore('folder', () => {
       return updated
     } catch (error) {
       console.error('Failed to update folder:', error)
-      const index = folders.value.findIndex(f => f.id === id)
-      if (index > -1) {
-        folders.value[index] = { ...folders.value[index], ...updates }
-        localStorage.setItem('folderConfigs', JSON.stringify(folders.value))
-        return folders.value[index]
-      }
       throw error
     }
   }
@@ -90,7 +65,7 @@ export const useFolderStore = defineStore('folder', () => {
       return updated
     } catch (error) {
       console.error('Failed to toggle folder:', error)
-      return updateFolder(id, { enabled })
+      throw error
     }
   }
 

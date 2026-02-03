@@ -1,9 +1,10 @@
-import { apiRequest } from '@/utils/api'
+import { apiRequest, API_BASE_URL } from '@/utils/api'
 import type {
   VideoCollection,
   VideoFile,
   PlayRecord,
   BackendVideoCollection,
+  BackendVideoListItem,
   BackendVideoEpisode,
   BackendVideo,
   BackendPlayHistory,
@@ -58,6 +59,40 @@ const mapCollectionEntityToCollection = (
   }
 }
 
+const isBackendVideoEntity = (value: BackendVideoCollection | BackendVideo): value is BackendVideo => {
+  return 'videoUrl' in value || 'duration' in value || 'playCount' in value || 'likeCount' in value
+}
+
+const mapVideoEntityToCollection = (video: BackendVideo): VideoCollection => {
+  return {
+    id: String(video.id ?? ''),
+    title: video.title || '',
+    description: video.description || '',
+    cover: video.coverUrl,
+    videos: [mapVideoEntityToVideoFile(video, video.title || '')],
+    totalEpisodes: 1,
+    createdAt: toTimestamp(video.createTime),
+    updatedAt: toTimestamp(video.updateTime)
+  }
+}
+
+const mapMixedRecordToCollection = (item: BackendVideoListItem): VideoCollection => {
+  if (item.itemType === 'collection' && item.collection) {
+    return mapCollectionEntityToCollection(item.collection)
+  }
+  if (item.itemType === 'video' && item.video) {
+    return mapVideoEntityToCollection(item.video)
+  }
+  if (item.collection) {
+    return mapCollectionEntityToCollection(item.collection)
+  }
+  if (item.video) {
+    return mapVideoEntityToCollection(item.video)
+  }
+  const raw = item as unknown as BackendVideoCollection | BackendVideo
+  return isBackendVideoEntity(raw) ? mapVideoEntityToCollection(raw as BackendVideo) : mapCollectionEntityToCollection(raw as BackendVideoCollection)
+}
+
 const mapPlayHistoryToRecord = (history: BackendPlayHistory): PlayRecord => {
   return {
     videoId: String(history.videoId ?? ''),
@@ -81,11 +116,11 @@ export interface UploadVideoOptions {
 
 export const videoApi = {
   async getCollections(pageNum = 1, pageSize = 200): Promise<VideoCollection[]> {
-    const page = await apiRequest.get<PageResult<BackendVideoCollection>>('/api/video/collection/page', {
+    const page = await apiRequest.get<PageResult<BackendVideoListItem>>('/api/video/page/mixed', {
       params: { pageNum, pageSize }
     })
     const records = page?.records || []
-    return records.map((item) => mapCollectionEntityToCollection(item))
+    return records.map((item) => mapMixedRecordToCollection(item))
   },
 
   async getCollectionById(id: string): Promise<VideoCollection> {
@@ -213,6 +248,11 @@ export const videoApi = {
   getVideoPlayUrl(videoId: string, expireSeconds?: number): Promise<string> {
     return apiRequest.get<string>(`/api/video/play/url/${videoId}`, {
       params: { expireSeconds }
+    }).then((url) => {
+      if (url && url.startsWith('/')) {
+        return `${API_BASE_URL}${url}`
+      }
+      return url
     })
   }
 }

@@ -51,6 +51,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { useMessage } from 'naive-ui'
 import type { FormInst } from 'naive-ui'
+import { getErrorMessage } from '@/utils/error'
 
 const router = useRouter()
 const route = useRoute()
@@ -103,32 +104,24 @@ const handleSubmit = async () => {
 
     try {
       if (isRegister.value) {
-        const success = await userStore.register(form.username, form.password)
-        if (success) {
-          message.success('注册成功')
-          if (redirectPath.value) {
-            router.push(redirectPath.value)
-          } else {
-            router.push({ name: 'home' })
-          }
+        await userStore.register(form.username, form.password)
+        message.success('注册成功')
+        if (redirectPath.value) {
+          router.push(redirectPath.value)
         } else {
-          message.error('用户名已存在')
+          router.push({ name: 'home' })
         }
       } else {
-        const success = await userStore.login(form.username, form.password)
-        if (success) {
-          message.success('登录成功')
-          if (redirectPath.value) {
-            router.push(redirectPath.value)
-          } else {
-            router.push({ name: 'home' })
-          }
+        await userStore.login(form.username, form.password)
+        message.success('登录成功')
+        if (redirectPath.value) {
+          router.push(redirectPath.value)
         } else {
-          message.error('用户名或密码错误')
+          router.push({ name: 'home' })
         }
       }
     } catch (error) {
-      message.error('操作失败：' + (error as Error).message)
+      message.error(getErrorMessage(error))
     } finally {
       loading.value = false
     }

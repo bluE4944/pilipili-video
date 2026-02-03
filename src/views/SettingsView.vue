@@ -110,6 +110,7 @@ import { useThemeStore } from '@/store/theme'
 import type { FolderConfig } from '@/types'
 import { AddOutline as AddIcon, CreateOutline as EditIcon, TrashOutline as TrashIcon } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
+import { getErrorMessage } from '@/utils/error'
 
 const folderStore = useFolderStore()
 const themeStore = useThemeStore()
@@ -137,9 +138,13 @@ const formRules = {
   }
 }
 
-const handleToggleFolder = (id: string, enabled: boolean) => {
-  folderStore.updateFolder(id, { enabled })
-  message.success(enabled ? '已启用' : '已禁用')
+const handleToggleFolder = async (id: string, enabled: boolean) => {
+  try {
+    await folderStore.updateFolder(id, { enabled })
+    message.success(enabled ? '已启用' : '已禁用')
+  } catch (error) {
+    message.error(getErrorMessage(error))
+  }
 }
 
 const handleEditFolder = (folder: FolderConfig) => {
@@ -149,30 +154,39 @@ const handleEditFolder = (folder: FolderConfig) => {
   showAddDialog.value = true
 }
 
-const handleDeleteFolder = (id: string) => {
-  folderStore.removeFolder(id)
-  message.success('已删除')
+const handleDeleteFolder = async (id: string) => {
+  try {
+    await folderStore.removeFolder(id)
+    message.success('已删除')
+  } catch (error) {
+    message.error(getErrorMessage(error))
+  }
 }
 
-const handleSaveFolder = () => {
+const handleSaveFolder = async () => {
   if (!folderForm.name || !folderForm.path) {
     message.warning('请填写完整信息')
     return
   }
 
-  if (editingFolderId.value) {
-    folderStore.updateFolder(editingFolderId.value, {
-      name: folderForm.name,
-      path: folderForm.path
-    })
-    message.success('更新成功')
-  } else {
-    folderStore.addFolder({
-      name: folderForm.name,
-      path: folderForm.path,
-      enabled: true
-    })
-    message.success('添加成功')
+  try {
+    if (editingFolderId.value) {
+      await folderStore.updateFolder(editingFolderId.value, {
+        name: folderForm.name,
+        path: folderForm.path
+      })
+      message.success('更新成功')
+    } else {
+      await folderStore.addFolder({
+        name: folderForm.name,
+        path: folderForm.path,
+        enabled: true
+      })
+      message.success('添加成功')
+    }
+  } catch (error) {
+    message.error(getErrorMessage(error))
+    return
   }
 
   showAddDialog.value = false

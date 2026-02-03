@@ -56,35 +56,24 @@ VITE_API_BASE_URL=http://localhost:8316
 - `PUT /api/user/me` - 更新用户信息
 - `POST /api/user/logout` - 登出
 
-## 降级策略
-
-所有 API 调用都实现了降级策略：
-- 如果后端 API 调用失败，会自动降级到本地存储（IndexedDB/localStorage）
-- 确保在网络问题或后端不可用时，应用仍能基本运行
-
 ## 认证
 
 API 请求会自动在请求头中添加 `Authorization: Bearer {token}`，token 从 `localStorage.getItem('token')` 获取。
 
 ## 响应格式
 
-后端 API 应返回以下格式之一：
+后端 API 统一返回以下格式：
 
 1. 标准格式：
 ```json
 {
-  "code": 200,
-  "data": {...},
-  "message": "success"
+  "status": 200,
+  "message": "success",
+  "body": {...}
 }
 ```
 
-2. 直接数据格式：
-```json
-{...}
-```
-
-API 拦截器会自动处理这两种格式。
+API 拦截器会在 `status !== 200` 时抛出错误，并优先使用后端 `message` 作为提示文案；若无有效消息或后端不可达，则统一提示“系统异常,请联络系统管理员。”。
 
 ## 注意事项
 
@@ -100,7 +89,7 @@ API 拦截器会自动处理这两种格式。
    - 如果本地文件不存在，从后端获取播放 URL
 
 4. **错误处理**
-   - 所有 API 调用都有错误处理和降级策略
+   - 所有 API 调用都有统一错误处理
    - 错误信息会通过 Naive UI 的 message 组件显示
 
 ## 修改 API 端点

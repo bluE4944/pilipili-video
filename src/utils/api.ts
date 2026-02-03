@@ -1,28 +1,50 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import { SYSTEM_ERROR_MESSAGE } from '@/utils/error'
 
 // API base config
 // Vue CLI uses process.env, variables must start with VUE_APP_
-const API_BASE_URL = (process.env.VUE_APP_API_BASE_URL as string) || 'http://localhost:8316'
+export const API_BASE_URL = (process.env.VUE_APP_API_BASE_URL as string) || 'http://localhost:8316'
 
 type ApiResult<T> = {
   status: number
   message: string
   body: T
-  success: boolean
 }
 
 const isApiResult = (value: any): value is ApiResult<any> => {
-  return value && typeof value === 'object' && 'status' in value && 'success' in value && 'body' in value
+  return value && typeof value === 'object' && 'status' in value && 'body' in value
 }
 
 const unwrapApiResult = <T>(value: any): T => {
   if (isApiResult(value)) {
-    if (!value.success || value.status !== 200) {
-      throw new Error(value.message || 'Request failed')
+    if (value.status !== 200) {
+      throw new Error(value.message || SYSTEM_ERROR_MESSAGE)
     }
     return value.body as T
   }
   return value as T
+}
+
+const extractMessage = (payload: any): string | undefined => {
+  if (!payload) return undefined
+  if (typeof payload === 'string' && payload.trim()) return payload
+  if (typeof payload === 'object') {
+    const message = typeof payload.message === 'string' ? payload.message : ''
+    if (message.trim()) return message
+    const msg = typeof payload.msg === 'string' ? payload.msg : ''
+    if (msg.trim()) return msg
+  }
+  return undefined
+}
+
+const resolveErrorMessage = (error: any): string => {
+  const data = error?.response?.data
+  if (isApiResult(data)) {
+    return data.message || SYSTEM_ERROR_MESSAGE
+  }
+  const message = extractMessage(data)
+  if (message) return message
+  return SYSTEM_ERROR_MESSAGE
 }
 
 // Create axios instance
@@ -58,7 +80,7 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('token')
       }
     }
-    return Promise.reject(error)
+    return Promise.reject(new Error(resolveErrorMessage(error)))
   }
 )
 

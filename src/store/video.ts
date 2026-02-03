@@ -3,7 +3,6 @@ import { ref } from 'vue'
 import type { VideoCollection, VideoFile, PlayRecord } from '@/types'
 import { videoApi, playRecordApi } from '@/api/video'
 import { folderApi } from '@/api/folder'
-import { isNumericId } from '@/utils/id'
 
 export const useVideoStore = defineStore('video', () => {
   const collections = ref<VideoCollection[]>([])
@@ -11,11 +10,6 @@ export const useVideoStore = defineStore('video', () => {
   const currentCollection = ref<VideoCollection | null>(null)
   const currentVideo = ref<VideoFile | null>(null)
   const scanning = ref(false)
-
-  const persistPlayRecords = () => {
-    const recordsObj = Object.fromEntries(playRecords.value)
-    localStorage.setItem('playRecords', JSON.stringify(recordsObj))
-  }
 
   const loadCollections = async () => {
     try {
@@ -40,17 +34,6 @@ export const useVideoStore = defineStore('video', () => {
 
   const loadCollectionDetail = async (collectionId: string) => {
     try {
-      if (!isNumericId(collectionId)) {
-        const local = collections.value.find(item => item.id === collectionId)
-        if (local) {
-          if (currentCollection.value && currentCollection.value.id === local.id) {
-            currentCollection.value = local
-          }
-          return local
-        }
-        throw new Error('本地合集不存在')
-      }
-
       const collection = await videoApi.getCollectionById(collectionId)
       const index = collections.value.findIndex(item => item.id === collection.id)
       if (index >= 0) {
@@ -68,28 +51,12 @@ export const useVideoStore = defineStore('video', () => {
     }
   }
 
-  const loadPlayRecords = async () => {
-    const stored = localStorage.getItem('playRecords')
-    if (!stored) return
-
-    try {
-      const records = JSON.parse(stored) as Record<string, PlayRecord>
-      playRecords.value = new Map(Object.entries(records))
-    } catch (error) {
-      console.error('Failed to parse stored play records:', error)
-    }
-  }
-
   const savePlayRecord = async (record: PlayRecord) => {
     try {
-      if (isNumericId(record.videoId)) {
-        await playRecordApi.savePlayRecord(record)
-      }
+      await playRecordApi.savePlayRecord(record)
+      playRecords.value.set(record.videoId, record)
     } catch (error) {
       console.error('Failed to save play record:', error)
-    } finally {
-      playRecords.value.set(record.videoId, record)
-      persistPlayRecords()
     }
   }
 
@@ -99,10 +66,6 @@ export const useVideoStore = defineStore('video', () => {
     }
 
     try {
-      if (!isNumericId(videoId)) {
-        return null
-      }
-
       const record = await playRecordApi.getPlayRecord(videoId)
       if (record) {
         const merged: PlayRecord = {
@@ -111,7 +74,6 @@ export const useVideoStore = defineStore('video', () => {
           episodeIndex: record.episodeIndex || 0
         }
         playRecords.value.set(videoId, merged)
-        persistPlayRecords()
         return merged
       }
     } catch (error) {
@@ -197,10 +159,6 @@ export const useVideoStore = defineStore('video', () => {
 
   const getVideoPlayUrl = async (videoId: string): Promise<string> => {
     try {
-      if (!isNumericId(videoId)) {
-        throw new Error('本地视频不支持获取播放地址')
-      }
-
       const result = await videoApi.getVideoPlayUrl(videoId)
       return result
     } catch (error) {
@@ -210,7 +168,6 @@ export const useVideoStore = defineStore('video', () => {
   }
 
   loadCollections().catch(console.error)
-  loadPlayRecords().catch(console.error)
 
   return {
     collections,
@@ -220,7 +177,6 @@ export const useVideoStore = defineStore('video', () => {
     scanning,
     loadCollections,
     loadCollectionDetail,
-    loadPlayRecords,
     scanAllVideos,
     savePlayRecord,
     getPlayRecord,

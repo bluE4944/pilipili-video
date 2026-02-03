@@ -46,7 +46,7 @@ import { commentApi } from '@/api/comment'
 import type { Comment } from '@/types'
 import { useMessage } from 'naive-ui'
 import dayjs from 'dayjs'
-import { isNumericId } from '@/utils/id'
+import { getErrorMessage } from '@/utils/error'
 
 interface Props {
   videoId: string
@@ -66,52 +66,13 @@ const loadComments = async () => {
     comments.value = []
     return
   }
-  if (!isNumericId(props.videoId)) {
-    try {
-      const { getCommentsByVideoId, getCommentsByCollectionId } = await import('@/utils/storage')
-      if (props.collectionId) {
-        const collectionComments = await getCommentsByCollectionId(props.collectionId)
-        comments.value = collectionComments.map(c => ({
-          ...c,
-          replies: []
-        }))
-      } else {
-        const videoComments = await getCommentsByVideoId(props.videoId)
-        comments.value = videoComments.map(c => ({
-          ...c,
-          replies: []
-        }))
-      }
-      comments.value.sort((a, b) => b.createdAt - a.createdAt)
-    } catch (e) {
-      console.error('Failed to load comments from local storage:', e)
-    }
-    return
-  }
   try {
     comments.value = await commentApi.getCommentsByVideoId(props.videoId)
     comments.value.sort((a, b) => b.createdAt - a.createdAt)
   } catch (error) {
     console.error('Failed to load comments:', error)
-    try {
-      const { getCommentsByVideoId, getCommentsByCollectionId } = await import('@/utils/storage')
-      if (props.collectionId) {
-        const collectionComments = await getCommentsByCollectionId(props.collectionId)
-        comments.value = collectionComments.map(c => ({
-          ...c,
-          replies: []
-        }))
-      } else {
-        const videoComments = await getCommentsByVideoId(props.videoId)
-        comments.value = videoComments.map(c => ({
-          ...c,
-          replies: []
-        }))
-      }
-      comments.value.sort((a, b) => b.createdAt - a.createdAt)
-    } catch (e) {
-      console.error('Failed to load comments from local storage:', e)
-    }
+    message.error(getErrorMessage(error))
+    comments.value = []
   }
 }
 
@@ -120,28 +81,6 @@ const handleSubmitComment = async () => {
 
   if (!userStore.currentUser) {
     message.warning('请先登录')
-    return
-  }
-
-  if (!isNumericId(props.videoId)) {
-    try {
-      const { saveComment } = await import('@/utils/storage')
-      const localComment: Comment = {
-        id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        videoId: props.videoId,
-        collectionId: props.collectionId,
-        userId: userStore.currentUser.id,
-        username: userStore.currentUser.username,
-        content: commentContent.value.trim(),
-        createdAt: Date.now()
-      }
-      await saveComment(localComment)
-      comments.value.unshift(localComment)
-      commentContent.value = ''
-      message.success('评论发表成功（本地模式）')
-    } catch (e) {
-      message.error('发表评论失败：' + (e as Error).message)
-    }
     return
   }
 
@@ -158,24 +97,7 @@ const handleSubmitComment = async () => {
     message.success('评论发表成功')
   } catch (error) {
     console.error('Failed to submit comment:', error)
-    try {
-      const { saveComment } = await import('@/utils/storage')
-      const localComment: Comment = {
-        id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        videoId: props.videoId,
-        collectionId: props.collectionId,
-        userId: userStore.currentUser.id,
-        username: userStore.currentUser.username,
-        content: commentContent.value.trim(),
-        createdAt: Date.now()
-      }
-      await saveComment(localComment)
-      comments.value.unshift(localComment)
-      commentContent.value = ''
-      message.success('评论发表成功（本地模式）')
-    } catch (e) {
-      message.error('发表评论失败：' + (error as Error).message)
-    }
+    message.error(getErrorMessage(error))
   }
 }
 

@@ -51,6 +51,7 @@ import { useVideoStore } from '@/store/video'
 import { useMessage } from 'naive-ui'
 
 import { getVideoBlobUrl, getVideoFile, revokeVideoBlobUrl, registerVideoFile } from '@/utils/videoFileManager'
+import { getErrorMessage } from '@/utils/error'
 
 
 
@@ -186,7 +187,7 @@ const initPlayer = async () => {
     } catch (error) {
 
       console.error('Failed to create blob URL:', error)
-      message.error('生成本地播放地址失败：' + (error as Error).message)
+      message.error(`生成本地播放地址失败：${getErrorMessage(error)}`)
 
       return
 
@@ -207,7 +208,7 @@ const initPlayer = async () => {
     } catch (error) {
 
       console.error('Failed to get play URL from backend:', error)
-      message.error('获取播放地址失败，请稍后重试')
+      message.error(getErrorMessage(error))
 
       return
 
@@ -412,7 +413,7 @@ const initPlayer = async () => {
 
     console.error('Failed to initialize player:', error)
 
-    message.error('初始化播放器失败：' + (error as Error).message)
+    message.error(`初始化播放器失败：${getErrorMessage(error)}`)
 
 
 

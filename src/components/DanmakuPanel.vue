@@ -36,7 +36,7 @@
 import { ref, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { danmakuApi, type Danmaku } from '@/api/danmaku'
-import { isNumericId } from '@/utils/id'
+import { getErrorMessage } from '@/utils/error'
 
 interface Props {
   videoId: string
@@ -52,10 +52,6 @@ const danmakus = ref<Danmaku[]>([])
 
 const loadDanmakus = async () => {
   if (!props.videoId) return
-  if (!isNumericId(props.videoId)) {
-    danmakus.value = []
-    return
-  }
   try {
     danmakus.value = await danmakuApi.getDanmakus(props.videoId)
   } catch (error) {
@@ -65,10 +61,6 @@ const loadDanmakus = async () => {
 
 const handleSend = async () => {
   if (!props.videoId || !content.value.trim()) return
-  if (!isNumericId(props.videoId)) {
-    message.warning('本地视频暂不支持弹幕')
-    return
-  }
   sending.value = true
   try {
     const time = props.getCurrentTime ? Math.floor(props.getCurrentTime()) : 0
@@ -82,7 +74,7 @@ const handleSend = async () => {
     message.success('弹幕发送成功')
   } catch (error) {
     console.error('Failed to send danmaku:', error)
-    message.error('弹幕发送失败')
+    message.error(getErrorMessage(error))
   } finally {
     sending.value = false
   }

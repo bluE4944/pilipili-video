@@ -18,7 +18,9 @@
               </n-layout-content>
               <n-layout-footer class="app-footer" v-if="showFooter">
                 <div class="footer-content">
-                  PiliPili Video 2024 由 Vue3 + TypeScript 构建</div>
+                  PiliPili Video 2024 由 Vue3 + TypeScript 构建 ·
+                    <router-link class="footer-link" to="/about">关于</router-link>
+                </div>
               </n-layout-footer>
             </n-layout>
           </n-dialog-provider>
@@ -105,6 +107,16 @@ body {
 .footer-content {
   color: var(--n-text-color);
   opacity: 0.6;
+}
+
+.footer-link {
+  margin-left: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 
 .fade-enter-active,

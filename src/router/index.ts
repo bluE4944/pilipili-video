@@ -87,7 +87,19 @@ const routes: RouteRecordRaw[] = [
 
     component: () => import('@/views/LoginView.vue'),
 
-    meta: { title: '登录' }
+    meta: { title: '??' }
+
+  },
+
+  {
+
+    path: '/about',
+
+    name: 'about',
+
+    component: () => import('@/views/AboutView.vue'),
+
+    meta: { title: '??', requiresAuth: false, allowGuest: true }
 
   }
 

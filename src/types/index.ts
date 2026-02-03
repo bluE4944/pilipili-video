@@ -66,7 +66,6 @@ export interface ApiResult<T> {
   status: number
   message: string
   body: T
-  success: boolean
 }
 
 export interface PageResult<T> {
@@ -153,6 +152,12 @@ export interface BackendVideoCollection {
   videoCount?: number
   createTime?: string
   updateTime?: string
+}
+
+export interface BackendVideoListItem {
+  itemType?: 'collection' | 'video'
+  collection?: BackendVideoCollection
+  video?: BackendVideo
 }
 
 export interface BackendVideoEpisode {

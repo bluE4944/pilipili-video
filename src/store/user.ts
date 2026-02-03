@@ -60,24 +60,11 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      const result = await userApi.login(username, password)
-      currentUser.value = result.user
-      setAuthToken(result.token, result.tokenType)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user))
-      return true
-    } catch (error) {
-      console.error('Failed to login:', error)
-      const deviceId = getDeviceId()
-      const guestUser: User = {
-        id: `guest_${deviceId}`,
-        username: `guest_${deviceId.slice(0, 8)}`,
-        createdAt: Date.now()
-      }
-      currentUser.value = guestUser
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(guestUser))
-      return false
-    }
+    const result = await userApi.login(username, password)
+    currentUser.value = result.user
+    setAuthToken(result.token, result.tokenType)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(result.user))
+    return true
   }
 
   const logout = async () => {

@@ -143,9 +143,10 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useVideoStore } from '@/store/video'
 import { videoSearchApi } from '@/api/video'
-import { scanVideosFromFiles, groupVideosIntoCollections, isVideoFile } from '@/utils/videoScanner'
+import { isVideoFile } from '@/utils/videoScanner'
 import { registerVideoFile } from '@/utils/videoFileManager'
 import type { BackendVideo } from '@/types'
+import { getErrorMessage } from '@/utils/error'
 import {
   SearchOutline as SearchIcon,
   AddOutline as AddIcon,
@@ -221,7 +222,7 @@ const performSearch = async () => {
     }
   } catch (error) {
     console.error('Failed to search videos:', error)
-    message.error('搜索失败')
+    message.error(getErrorMessage(error))
     searchResults.value = []
   } finally {
     searchLoading.value = false
@@ -274,44 +275,12 @@ const handleFileSelect = async (event: Event) => {
 
     message.destroyAll()
     message.success(`成功上传 ${uploadedVideos.length} 个视频文件`)
-
-    if (target) target.value = ''
   } catch (error) {
     console.error('Failed to upload videos:', error)
     message.destroyAll()
-
-    try {
-      message.loading('后端上传失败，切换到本地模式...', { duration: 0, key: 'loading' })
-
-      const { initDB, saveVideos } = await import('@/utils/storage')
-      await initDB()
-
-      const videoFiles = await scanVideosFromFiles(files)
-
-      videoFiles.forEach((video) => {
-        const matchingFile = files.find(f => f.name === video.name && isVideoFile(f.name))
-        if (matchingFile && matchingFile instanceof File && matchingFile.size > 0) {
-          registerVideoFile(video.id, matchingFile)
-        }
-      })
-
-      const newCollections = groupVideosIntoCollections(videoFiles)
-
-      await saveVideos(videoFiles.map(v => ({
-        ...v,
-        fileData: undefined
-      })))
-
-      videoStore.collections.push(...newCollections)
-
-      message.destroyAll()
-      message.success(`成功添加 ${newCollections.length} 个视频合集（本地模式）`)
-
-      if (target) target.value = ''
-    } catch (localError) {
-      message.destroyAll()
-      message.error('添加视频失败：' + (error as Error).message)
-    }
+    message.error(getErrorMessage(error))
+  } finally {
+    if (target) target.value = ''
   }
 }
 
@@ -323,7 +292,7 @@ const handleScanVideos = async () => {
     message.success('扫描完成')
   } catch (error) {
     message.destroyAll()
-    message.error('扫描失败')
+    message.error(getErrorMessage(error))
   }
 }
 
