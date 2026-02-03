@@ -1,10 +1,5 @@
-import service from "@/utils/requst";
-const BASE_URL = process.env.VUE_APP_API_BASE_URL;
+import { apiRequest } from '@/utils/api'
 
 export function login(params) {
-    return service({
-        url: `${BASE_URL}/login`,
-        method: "post",
-        data: params
-    });
+  return apiRequest.post('/api/auth/login', params)
 }

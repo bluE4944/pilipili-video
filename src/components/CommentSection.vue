@@ -1,7 +1,6 @@
 <template>
   <div class="comment-section">
     <n-space vertical :size="16">
-      <!-- 评论输入框 -->
       <n-input
         v-model:value="commentContent"
         type="textarea"
@@ -16,7 +15,6 @@
         </n-button>
       </n-space>
 
-      <!-- 评论列表 -->
       <n-list v-if="comments.length > 0">
         <n-list-item v-for="comment in comments" :key="comment.id">
           <n-thing>
@@ -36,8 +34,7 @@
         </n-list-item>
       </n-list>
 
-      <!-- 空状态 -->
-      <n-empty v-else description="暂无评论，快来发表第一条评论吧！" />
+      <n-empty v-else description="暂无评论，快来发表第一条评论吧" />
     </n-space>
   </div>
 </template>
@@ -49,6 +46,7 @@ import { commentApi } from '@/api/comment'
 import type { Comment } from '@/types'
 import { useMessage } from 'naive-ui'
 import dayjs from 'dayjs'
+import { isNumericId } from '@/utils/id'
 
 interface Props {
   videoId: string
@@ -64,18 +62,37 @@ const comments = ref<Comment[]>([])
 const commentContent = ref('')
 
 const loadComments = async () => {
-  try {
-    if (props.collectionId) {
-      comments.value = await commentApi.getCommentsByCollectionId(props.collectionId)
-    } else {
-      comments.value = await commentApi.getCommentsByVideoId(props.videoId)
+  if (!props.videoId) {
+    comments.value = []
+    return
+  }
+  if (!isNumericId(props.videoId)) {
+    try {
+      const { getCommentsByVideoId, getCommentsByCollectionId } = await import('@/utils/storage')
+      if (props.collectionId) {
+        const collectionComments = await getCommentsByCollectionId(props.collectionId)
+        comments.value = collectionComments.map(c => ({
+          ...c,
+          replies: []
+        }))
+      } else {
+        const videoComments = await getCommentsByVideoId(props.videoId)
+        comments.value = videoComments.map(c => ({
+          ...c,
+          replies: []
+        }))
+      }
+      comments.value.sort((a, b) => b.createdAt - a.createdAt)
+    } catch (e) {
+      console.error('Failed to load comments from local storage:', e)
     }
-    
-    // 按时间倒序排序
+    return
+  }
+  try {
+    comments.value = await commentApi.getCommentsByVideoId(props.videoId)
     comments.value.sort((a, b) => b.createdAt - a.createdAt)
   } catch (error) {
     console.error('Failed to load comments:', error)
-    // 降级到本地存储
     try {
       const { getCommentsByVideoId, getCommentsByCollectionId } = await import('@/utils/storage')
       if (props.collectionId) {
@@ -106,21 +123,41 @@ const handleSubmitComment = async () => {
     return
   }
 
+  if (!isNumericId(props.videoId)) {
+    try {
+      const { saveComment } = await import('@/utils/storage')
+      const localComment: Comment = {
+        id: `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        videoId: props.videoId,
+        collectionId: props.collectionId,
+        userId: userStore.currentUser.id,
+        username: userStore.currentUser.username,
+        content: commentContent.value.trim(),
+        createdAt: Date.now()
+      }
+      await saveComment(localComment)
+      comments.value.unshift(localComment)
+      commentContent.value = ''
+      message.success('评论发表成功（本地模式）')
+    } catch (e) {
+      message.error('发表评论失败：' + (e as Error).message)
+    }
+    return
+  }
+
   try {
     const newComment = await commentApi.addComment({
       videoId: props.videoId,
-      collectionId: props.collectionId,
       userId: userStore.currentUser.id,
       username: userStore.currentUser.username,
       content: commentContent.value.trim()
     })
-    
+
     comments.value.unshift(newComment)
     commentContent.value = ''
     message.success('评论发表成功')
   } catch (error) {
     console.error('Failed to submit comment:', error)
-    // 降级到本地存储
     try {
       const { saveComment } = await import('@/utils/storage')
       const localComment: Comment = {
@@ -149,14 +186,13 @@ const formatTime = (timestamp: number): string => {
   if (diff < 60000) {
     return '刚刚'
   } else if (diff < 3600000) {
-    return `${Math.floor(diff / 60000)}分钟前`
+    return `${Math.floor(diff / 60000)} 分钟前`
   } else if (diff < 86400000) {
-    return `${Math.floor(diff / 3600000)}小时前`
+    return `${Math.floor(diff / 3600000)} 小时前`
   } else if (diff < 604800000) {
-    return `${Math.floor(diff / 86400000)}天前`
-  } else {
-    return dayjs(timestamp).format('YYYY-MM-DD HH:mm')
+    return `${Math.floor(diff / 86400000)} 天前`
   }
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm')
 }
 
 onMounted(() => {
@@ -172,4 +208,4 @@ watch([() => props.videoId, () => props.collectionId], () => {
 .comment-section {
   padding: 16px 0;
 }
-</style>
+</style>

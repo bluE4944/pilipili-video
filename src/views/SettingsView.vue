@@ -4,14 +4,13 @@
       <n-space vertical :size="24">
         <h2>设置</h2>
 
-        <!-- 文件夹配置 -->
         <n-card title="文件夹配置" size="small">
           <n-space vertical :size="16">
             <n-alert type="info" :show-icon="false">
               <n-text depth="3">
                 由于浏览器安全限制，无法直接访问本地文件系统。
-                请使用"添加视频"功能通过文件选择器添加视频文件。
-                如需访问局域网文件夹，请配置后端API或使用Electron等桌面应用框架。
+                请使用“添加视频”功能通过文件选择器添加视频文件。
+                如需访问局域网文件夹，请配置后端 API 或使用 Electron 等桌面应用框架。
               </n-text>
             </n-alert>
 
@@ -19,7 +18,7 @@
               <n-list-item v-for="folder in folderStore.folders" :key="folder.id">
                 <n-thing>
                   <template #header>
-                    <n-space justify="space-between">
+                    <n-space justify="space-between" :wrap="true">
                       <n-text strong>{{ folder.name }}</n-text>
                       <n-space>
                         <n-switch
@@ -55,12 +54,11 @@
           </n-space>
         </n-card>
 
-        <!-- 主题设置 -->
         <n-card title="主题设置" size="small">
           <n-space vertical :size="16">
             <n-radio-group v-model:value="themeStore.theme" @update:value="handleThemeChange">
               <n-space>
-                <n-radio value="light">浅色</n-radio>
+                <n-radio value="light">ǳɫ</n-radio>
                 <n-radio value="dark">深色</n-radio>
                 <n-radio value="auto">跟随系统</n-radio>
               </n-space>
@@ -71,10 +69,9 @@
           </n-space>
         </n-card>
 
-        <!-- 其他设置 -->
         <n-card title="其他设置" size="small">
           <n-space vertical :size="16">
-            <n-space justify="space-between" align="center">
+            <n-space justify="space-between" align="center" :wrap="true">
               <div>
                 <n-text strong>自动播放下一集</n-text>
                 <br>
@@ -87,7 +84,6 @@
       </n-space>
     </n-card>
 
-    <!-- 添加/编辑文件夹对话框 -->
     <n-modal v-model:show="showAddDialog" preset="dialog" title="文件夹配置">
       <n-form ref="formRef" :model="folderForm" :rules="formRules">
         <n-form-item label="名称" path="name">
@@ -179,7 +175,6 @@ const handleSaveFolder = () => {
     message.success('添加成功')
   }
 
-  // 重置表单
   showAddDialog.value = false
   editingFolderId.value = null
   folderForm.name = ''
@@ -196,5 +191,11 @@ const handleThemeChange = (value: string) => {
 .settings-view {
   max-width: 1000px;
   margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .settings-view {
+    max-width: 100%;
+  }
 }
 </style>

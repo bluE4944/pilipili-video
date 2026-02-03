@@ -1,6 +1,6 @@
 <template>
   <div class="login-view">
-    <n-card style="max-width: 400px; margin: 100px auto">
+    <n-card class="login-card">
       <n-space vertical :size="24">
         <div class="login-header">
           <h2>{{ isRegister ? '注册' : '登录' }}</h2>
@@ -60,6 +60,7 @@ const message = useMessage()
 const isRegister = ref(route.query.action === 'register')
 const loading = ref(false)
 const formRef = ref<FormInst | null>(null)
+const redirectPath = computed(() => (route.query.redirect as string) || '')
 
 const form = reactive({
   username: '',
@@ -75,48 +76,53 @@ const rules = computed(() => ({
   },
   password: {
     required: true,
-    message: '请输入密码',
-    trigger: 'blur',
     min: 6,
-    message: '密码长度至少6位',
+    message: '密码长度至少 6 位',
     trigger: 'blur'
   },
   confirmPassword: isRegister.value ? {
     required: true,
     message: '请确认密码',
     trigger: 'blur',
-    validator: (rule: any, value: string) => {
+    validator: (_rule: any, value: string) => {
       if (value !== form.password) {
         return new Error('两次输入的密码不一致')
       }
       return true
-    },
-    trigger: 'blur'
+    }
   } : {}
 }))
 
 const handleSubmit = async () => {
   if (!formRef.value) return
 
-  await formRef.value.validate((errors) => {
+  await formRef.value.validate(async (errors) => {
     if (errors) return
 
     loading.value = true
 
     try {
       if (isRegister.value) {
-        const success = userStore.register(form.username, form.password)
+        const success = await userStore.register(form.username, form.password)
         if (success) {
           message.success('注册成功')
-          router.push({ name: 'home' })
+          if (redirectPath.value) {
+            router.push(redirectPath.value)
+          } else {
+            router.push({ name: 'home' })
+          }
         } else {
           message.error('用户名已存在')
         }
       } else {
-        const success = userStore.login(form.username, form.password)
+        const success = await userStore.login(form.username, form.password)
         if (success) {
           message.success('登录成功')
-          router.push({ name: 'home' })
+          if (redirectPath.value) {
+            router.push(redirectPath.value)
+          } else {
+            router.push({ name: 'home' })
+          }
         } else {
           message.error('用户名或密码错误')
         }
@@ -132,7 +138,11 @@ const handleSubmit = async () => {
 const handleGuestLogin = () => {
   userStore.loginAsGuest()
   message.success('已以游客身份登录')
-  router.push({ name: 'home' })
+  if (redirectPath.value) {
+    router.push(redirectPath.value)
+  } else {
+    router.push({ name: 'home' })
+  }
 }
 </script>
 
@@ -144,11 +154,23 @@ const handleGuestLogin = () => {
   justify-content: center;
 }
 
+.login-card {
+  max-width: 400px;
+  margin: 100px auto;
+}
+
 .login-header {
   text-align: center;
-  
+
   h2 {
     margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    width: 100%;
+    margin: 40px 0;
   }
 }
 </style>

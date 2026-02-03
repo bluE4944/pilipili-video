@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { VideoCollection, VideoFile, PlayRecord } from '@/types'
 import { videoApi, playRecordApi } from '@/api/video'
+import { folderApi } from '@/api/folder'
+import { isNumericId } from '@/utils/id'
 
 export const useVideoStore = defineStore('video', () => {
   const collections = ref<VideoCollection[]>([])
@@ -10,76 +12,118 @@ export const useVideoStore = defineStore('video', () => {
   const currentVideo = ref<VideoFile | null>(null)
   const scanning = ref(false)
 
-  // 从后端加载所有合集
+  const persistPlayRecords = () => {
+    const recordsObj = Object.fromEntries(playRecords.value)
+    localStorage.setItem('playRecords', JSON.stringify(recordsObj))
+  }
+
   const loadCollections = async () => {
     try {
-      collections.value = await videoApi.getCollections()
+      const latest = await videoApi.getCollections()
+      const existingMap = new Map(collections.value.map(item => [item.id, item]))
+      collections.value = latest.map((item) => {
+        const existing = existingMap.get(item.id)
+        if (existing && existing.videos.length > 0) {
+          return {
+            ...item,
+            videos: existing.videos,
+            totalEpisodes: item.totalEpisodes || existing.totalEpisodes
+          }
+        }
+        return item
+      })
     } catch (error) {
       console.error('Failed to load collections:', error)
       throw error
     }
   }
 
-  // 从后端加载播放记录
-  const loadPlayRecords = async () => {
+  const loadCollectionDetail = async (collectionId: string) => {
     try {
-      const records = await playRecordApi.getAllPlayRecords()
-      playRecords.value = new Map(records.map(r => [r.videoId, r]))
-    } catch (error) {
-      console.error('Failed to load play records:', error)
-      // 如果后端不支持，可以降级到本地存储
-      const stored = localStorage.getItem('playRecords')
-      if (stored) {
-        try {
-          const records = JSON.parse(stored)
-          playRecords.value = new Map(Object.entries(records))
-        } catch (e) {
-          console.error('Failed to parse stored play records:', e)
+      if (!isNumericId(collectionId)) {
+        const local = collections.value.find(item => item.id === collectionId)
+        if (local) {
+          if (currentCollection.value && currentCollection.value.id === local.id) {
+            currentCollection.value = local
+          }
+          return local
         }
+        throw new Error('本地合集不存在')
       }
+
+      const collection = await videoApi.getCollectionById(collectionId)
+      const index = collections.value.findIndex(item => item.id === collection.id)
+      if (index >= 0) {
+        collections.value[index] = collection
+      } else {
+        collections.value.push(collection)
+      }
+      if (currentCollection.value && currentCollection.value.id === collection.id) {
+        currentCollection.value = collection
+      }
+      return collection
+    } catch (error) {
+      console.error('Failed to load collection detail:', error)
+      throw error
     }
   }
 
-  // 保存播放记录到后端
+  const loadPlayRecords = async () => {
+    const stored = localStorage.getItem('playRecords')
+    if (!stored) return
+
+    try {
+      const records = JSON.parse(stored) as Record<string, PlayRecord>
+      playRecords.value = new Map(Object.entries(records))
+    } catch (error) {
+      console.error('Failed to parse stored play records:', error)
+    }
+  }
+
   const savePlayRecord = async (record: PlayRecord) => {
     try {
-      await playRecordApi.savePlayRecord(record)
-      playRecords.value.set(record.videoId, record)
+      if (isNumericId(record.videoId)) {
+        await playRecordApi.savePlayRecord(record)
+      }
     } catch (error) {
       console.error('Failed to save play record:', error)
-      // 降级到本地存储
+    } finally {
       playRecords.value.set(record.videoId, record)
-      const recordsObj = Object.fromEntries(playRecords.value)
-      localStorage.setItem('playRecords', JSON.stringify(recordsObj))
+      persistPlayRecords()
     }
   }
 
-  // 获取播放记录
   const getPlayRecord = async (videoId: string): Promise<PlayRecord | null> => {
-    // 先从内存中查找
     if (playRecords.value.has(videoId)) {
       return playRecords.value.get(videoId) || null
     }
-    
-    // 从后端加载
+
     try {
+      if (!isNumericId(videoId)) {
+        return null
+      }
+
       const record = await playRecordApi.getPlayRecord(videoId)
       if (record) {
-        playRecords.value.set(videoId, record)
-        return record
+        const merged: PlayRecord = {
+          ...record,
+          collectionId: record.collectionId,
+          episodeIndex: record.episodeIndex || 0
+        }
+        playRecords.value.set(videoId, merged)
+        persistPlayRecords()
+        return merged
       }
     } catch (error) {
       console.error('Failed to get play record:', error)
     }
-    
+
     return null
   }
 
-  // 上传视频文件
   const uploadVideo = async (file: File, onProgress?: (progress: number) => void) => {
     try {
       const video = await videoApi.uploadVideo(file, onProgress)
-      // 上传后重新加载合集
       await loadCollections()
       return video
     } catch (error) {
@@ -88,11 +132,9 @@ export const useVideoStore = defineStore('video', () => {
     }
   }
 
-  // 批量上传视频
   const uploadVideos = async (files: File[], onProgress?: (progress: number) => void) => {
     try {
       const videos = await videoApi.uploadVideos(files, onProgress)
-      // 上传后重新加载合集
       await loadCollections()
       return videos
     } catch (error) {
@@ -101,28 +143,27 @@ export const useVideoStore = defineStore('video', () => {
     }
   }
 
-  // 扫描文件夹中的视频
-  const scanAllVideos = async (folderPaths?: string[]) => {
+  const scanAllVideos = async (configIds?: string[]) => {
     scanning.value = true
     try {
-      if (!folderPaths || folderPaths.length === 0) {
-        // 如果没有指定路径，重新加载合集
-        await loadCollections()
+      let ids = configIds
+      if (!ids || ids.length === 0) {
+        const enabled = await folderApi.getEnabledFolders()
+        ids = enabled.map(item => item.id)
+      }
+
+      if (!ids || ids.length === 0) {
         return
       }
-      
-      // 扫描每个文件夹
-      const allVideos: VideoFile[] = []
-      for (const path of folderPaths) {
+
+      for (const id of ids) {
         try {
-          const videos = await videoApi.scanFolder(path)
-          allVideos.push(...videos)
+          await folderApi.scanFolder(id)
         } catch (error) {
-          console.error(`Failed to scan folder ${path}:`, error)
+          console.error(`Failed to scan folder config ${id}:`, error)
         }
       }
-      
-      // 重新加载合集以获取最新的分组
+
       await loadCollections()
     } catch (error) {
       console.error('Failed to scan videos:', error)
@@ -132,42 +173,42 @@ export const useVideoStore = defineStore('video', () => {
     }
   }
 
-  // 设置当前播放的视频
   const setCurrentVideo = (collection: VideoCollection, videoIndex: number) => {
     currentCollection.value = collection
     currentVideo.value = collection.videos[videoIndex]
   }
 
-  // 获取下一个视频
   const getNextVideo = (): { collection: VideoCollection; videoIndex: number } | null => {
     if (!currentCollection.value || !currentVideo.value) return null
-    
+
     const currentIndex = currentCollection.value.videos.findIndex(
       v => v.id === currentVideo.value!.id
     )
-    
+
     if (currentIndex >= 0 && currentIndex < currentCollection.value.videos.length - 1) {
       return {
         collection: currentCollection.value,
         videoIndex: currentIndex + 1
       }
     }
-    
+
     return null
   }
 
-  // 获取视频播放URL
   const getVideoPlayUrl = async (videoId: string): Promise<string> => {
     try {
+      if (!isNumericId(videoId)) {
+        throw new Error('本地视频不支持获取播放地址')
+      }
+
       const result = await videoApi.getVideoPlayUrl(videoId)
-      return result.url
+      return result
     } catch (error) {
       console.error('Failed to get video play URL:', error)
       throw error
     }
   }
 
-  // 初始化加载
   loadCollections().catch(console.error)
   loadPlayRecords().catch(console.error)
 
@@ -178,6 +219,7 @@ export const useVideoStore = defineStore('video', () => {
     currentVideo,
     scanning,
     loadCollections,
+    loadCollectionDetail,
     loadPlayRecords,
     scanAllVideos,
     savePlayRecord,

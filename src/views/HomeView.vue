@@ -7,7 +7,7 @@
           <p>您的局域网视频播放平台</p>
         </div>
 
-        <n-grid :cols="3" :x-gap="20" :y-gap="20">
+        <n-grid class="home-stats-grid" :cols="3" :x-gap="20" :y-gap="20">
           <n-gi>
             <n-statistic label="视频合集" :value="videoStore.collections.length">
               <template #suffix>
@@ -53,9 +53,41 @@
 
         <n-divider />
 
+        <n-grid class="home-panels-grid" :cols="2" :x-gap="20" :y-gap="20">
+          <n-gi>
+            <n-card title="热门排行" size="small">
+              <n-list v-if="hotRanking.length">
+                <n-list-item v-for="video in hotRanking" :key="video.id" @click="goToVideoDetail(String(video.id))">
+                  <n-thing>
+                    <template #header>
+                      <n-text strong>{{ video.title || '未命名视频' }}</n-text>
+                    </template>
+                    <template #description>
+                      <n-text depth="3">播放 {{ video.playCount || 0 }}</n-text>
+                    </template>
+                  </n-thing>
+                </n-list-item>
+              </n-list>
+              <n-empty v-else description="暂无排行数据" />
+            </n-card>
+          </n-gi>
+          <n-gi>
+            <n-card title="用户行为" size="small">
+              <n-descriptions v-if="behaviorEntries.length" :column="1" size="small">
+                <n-descriptions-item v-for="item in behaviorEntries" :key="item[0]" :label="item[0]">
+                  {{ item[1] }}
+                </n-descriptions-item>
+              </n-descriptions>
+              <n-empty v-else description="暂无行为数据" />
+            </n-card>
+          </n-gi>
+        </n-grid>
+
+        <n-divider />
+
         <div class="recent-collections" v-if="recentCollections.length > 0">
           <h3>最近观看</h3>
-          <n-grid :cols="5" :x-gap="16" :y-gap="16">
+          <n-grid class="recent-grid" :cols="5" :x-gap="16" :y-gap="16">
             <n-gi v-for="collection in recentCollections" :key="collection.id">
               <n-card hoverable @click="goToVideoDetail(collection.id)">
                 <template #cover>
@@ -81,25 +113,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useVideoStore } from '@/store/video'
-import { 
-  VideoLibraryOutline as VideoLibraryIcon, 
-  PlayOutline as PlayIcon, 
-  TimeOutline as TimeIcon, 
-  SettingsOutline as SettingsIcon 
+import { videoStatisticsApi } from '@/api/video'
+import type { BackendVideo } from '@/types'
+import {
+  VideoLibraryOutline as VideoLibraryIcon,
+  PlayOutline as PlayIcon,
+  TimeOutline as TimeIcon,
+  SettingsOutline as SettingsIcon
 } from '@vicons/ionicons5'
 
 const router = useRouter()
 const videoStore = useVideoStore()
 
+const hotRanking = ref<BackendVideo[]>([])
+const userBehavior = ref<Record<string, any>>({})
+
 const totalVideos = computed(() => {
-  return videoStore.collections.reduce((sum, col) => sum + col.videos.length, 0)
+  return videoStore.collections.reduce((sum, col) => sum + col.totalEpisodes, 0)
 })
 
 const recentCollections = computed(() => {
-  // 根据播放记录获取最近观看的合集
   const recentIds = Array.from(videoStore.playRecords.values())
     .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt)
     .slice(0, 5)
@@ -110,6 +146,8 @@ const recentCollections = computed(() => {
     .filter(col => recentIds.includes(col.id))
     .slice(0, 5)
 })
+
+const behaviorEntries = computed(() => Object.entries(userBehavior.value))
 
 const goToVideo = () => {
   router.push({ name: 'video' })
@@ -122,6 +160,24 @@ const goToSettings = () => {
 const goToVideoDetail = (id: string) => {
   router.push({ name: 'videoDetail', params: { id } })
 }
+
+const loadStatistics = async () => {
+  try {
+    hotRanking.value = await videoStatisticsApi.getHotRanking()
+  } catch (error) {
+    hotRanking.value = []
+  }
+
+  try {
+    userBehavior.value = await videoStatisticsApi.getUserBehavior()
+  } catch (error) {
+    userBehavior.value = {}
+  }
+}
+
+onMounted(() => {
+  loadStatistics()
+})
 </script>
 
 <style scoped lang="scss">
@@ -165,5 +221,22 @@ const goToVideoDetail = (id: string) => {
 
 .collection-info {
   margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .home-stats-grid,
+  .home-panels-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  .recent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .recent-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
 }
 </style>

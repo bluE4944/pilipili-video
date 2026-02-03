@@ -5,6 +5,7 @@
         <span class="logo-text">PiliPili</span>
       </router-link>
       <n-menu
+        class="header-menu"
         v-model:value="activeKey"
         mode="horizontal"
         :options="menuOptions"
@@ -12,6 +13,13 @@
       />
     </div>
     <div class="header-right">
+      <n-dropdown class="header-menu-mobile" :options="menuOptions" @select="handleMenuSelect">
+        <n-button quaternary circle>
+          <template #icon>
+            <n-icon><MenuIcon /></n-icon>
+          </template>
+        </n-button>
+      </n-dropdown>
       <n-button quaternary circle @click="toggleTheme">
         <template #icon>
           <n-icon>
@@ -21,11 +29,11 @@
         </template>
       </n-button>
       <n-dropdown :options="userOptions" @select="handleUserAction">
-        <n-button quaternary>
+        <n-button quaternary class="user-button">
           <template #icon>
             <n-icon><PersonIcon /></n-icon>
           </template>
-          {{ userStore.currentUser?.username || '游客' }}
+          <span class="user-name">{{ userStore.currentUser?.username || '游客' }}</span>
         </n-button>
       </n-dropdown>
     </div>
@@ -33,19 +41,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { NIcon } from 'naive-ui'
 import { useThemeStore } from '@/store/theme'
 import { useUserStore } from '@/store/user'
-import { PersonCircleOutline as PersonIcon, SunnyOutline as SunnyIcon, MoonOutline as MoonIcon } from '@vicons/ionicons5'
+import {
+  PersonCircleOutline as PersonIcon,
+  SunnyOutline as SunnyIcon,
+  MoonOutline as MoonIcon,
+  MenuOutline as MenuIcon
+} from '@vicons/ionicons5'
 
 const router = useRouter()
 const route = useRoute()
 const themeStore = useThemeStore()
 const userStore = useUserStore()
 
-const activeKey = computed(() => route.name as string)
+const activeKey = computed(() => {
+  if (route.name === 'videoDetail') return 'video'
+  if (route.name === 'blogDetail') return 'blog'
+  return route.name as string
+})
 
 const menuOptions = [
   {
@@ -55,6 +71,10 @@ const menuOptions = [
   {
     label: '视频',
     key: 'video'
+  },
+  {
+    label: '博客',
+    key: 'blog'
   },
   {
     label: '设置',
@@ -97,7 +117,6 @@ const handleUserAction = (key: string) => {
   } else if (key === 'login') {
     router.push({ name: 'login' })
   } else if (key === 'register') {
-    // 可以打开注册对话框
     router.push({ name: 'login', query: { action: 'register' } })
   }
 }
@@ -133,5 +152,39 @@ const handleUserAction = (key: string) => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.header-menu-mobile {
+  display: none;
+}
+
+.user-name {
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 12px;
+  }
+
+  .header-left {
+    gap: 12px;
+  }
+
+  .header-menu {
+    display: none;
+  }
+
+  .header-menu-mobile {
+    display: inline-flex;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
 }
 </style>

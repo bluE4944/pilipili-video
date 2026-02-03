@@ -2,20 +2,21 @@
   <div class="video-home">
     <n-card>
       <n-space vertical :size="20">
-        <!-- 搜索栏 -->
-        <n-input
-          v-model:value="searchQuery"
-          placeholder="搜索视频..."
-          clearable
-          @update:value="handleSearch"
-        >
-          <template #prefix>
-            <n-icon><SearchIcon /></n-icon>
-          </template>
-        </n-input>
+        <n-space align="center" :wrap="true">
+          <n-select v-model:value="searchType" :options="searchOptions" style="width: 120px" />
+          <n-input
+            v-model:value="searchQuery"
+            placeholder="搜索视频..."
+            clearable
+            @update:value="handleSearch"
+          >
+            <template #prefix>
+              <n-icon><SearchIcon /></n-icon>
+            </template>
+          </n-input>
+        </n-space>
 
-        <!-- 操作栏 -->
-        <n-space justify="space-between">
+        <n-space justify="space-between" :wrap="true">
           <n-space>
             <n-button type="primary" @click="handleAddVideos">
               <template #icon>
@@ -37,50 +38,94 @@
                   </template>
                 </n-button>
               </template>
-              <span>由于浏览器安全限制，无法直接访问本地文件系统。<br/>请使用"添加视频"功能选择视频文件。</span>
+              <span>如果浏览器无法访问本地文件，请使用后端扫描或上传功能。</span>
             </n-popover>
           </n-space>
           <n-space>
-            <n-text depth="3">共 {{ filteredCollections.length }} 个合集</n-text>
+            <n-text depth="3">
+              共 {{ searchQuery ? searchResults.length : filteredCollections.length }} 条结果
+            </n-text>
           </n-space>
         </n-space>
 
-        <!-- 视频列表 -->
-        <n-grid v-if="filteredCollections.length > 0" :cols="5" :x-gap="16" :y-gap="16">
-          <n-gi v-for="collection in filteredCollections" :key="collection.id">
-            <n-card hoverable @click="goToVideoDetail(collection.id)" class="collection-card">
-              <template #cover>
-                <div class="collection-cover">
-                  <n-icon :size="50">
-                    <VideoLibraryIcon />
-                  </n-icon>
-                  <div class="episode-badge">{{ collection.totalEpisodes }} 集</div>
-                </div>
-              </template>
-              <n-ellipsis :tooltip="false" style="font-weight: 500">
-                {{ collection.title }}
-              </n-ellipsis>
-              <div class="collection-meta">
-                <n-text depth="3" style="font-size: 12px">
-                  {{ collection.description }}
-                </n-text>
-              </div>
-            </n-card>
-          </n-gi>
-        </n-grid>
-
-        <!-- 空状态 -->
-        <n-empty v-else description="暂无视频，请先添加视频文件">
-          <template #extra>
-            <n-button type="primary" @click="handleAddVideos">
-              添加视频
-            </n-button>
+        <n-spin :show="searchLoading">
+          <template v-if="searchQuery">
+            <n-grid v-if="searchResults.length" class="video-grid" :cols="5" :x-gap="16" :y-gap="16">
+              <n-gi v-for="video in searchResults" :key="video.id">
+                <n-card hoverable @click="goToVideoById(video.id)" class="video-card">
+                  <template #cover>
+                    <div class="video-cover">
+                      <img v-if="video.coverUrl" :src="video.coverUrl" alt="cover" />
+                      <n-icon v-else :size="48"><VideoLibraryIcon /></n-icon>
+                    </div>
+                  </template>
+                  <n-ellipsis :tooltip="false" style="font-weight: 500">
+                    {{ video.title || '未命名视频' }}
+                  </n-ellipsis>
+                  <div class="video-meta">
+                    <n-text depth="3" style="font-size: 12px">
+                      播放 {{ video.playCount || 0 }} · 点赞 {{ video.likeCount || 0 }}
+                    </n-text>
+                  </div>
+                </n-card>
+              </n-gi>
+            </n-grid>
+            <n-empty v-else description="暂无搜索结果" />
           </template>
-        </n-empty>
+
+          <template v-else>
+            <n-grid v-if="filteredCollections.length" class="video-grid" :cols="5" :x-gap="16" :y-gap="16">
+              <n-gi v-for="collection in filteredCollections" :key="collection.id">
+                <n-card hoverable @click="goToVideoDetail(collection.id)" class="collection-card">
+                  <template #cover>
+                    <div class="collection-cover">
+                      <n-icon :size="50">
+                        <VideoLibraryIcon />
+                      </n-icon>
+                      <div class="episode-badge">{{ collection.totalEpisodes }} 集</div>
+                    </div>
+                  </template>
+                  <n-ellipsis :tooltip="false" style="font-weight: 500">
+                    {{ collection.title }}
+                  </n-ellipsis>
+                  <div class="collection-meta">
+                    <n-text depth="3" style="font-size: 12px">
+                      {{ collection.description }}
+                    </n-text>
+                  </div>
+                </n-card>
+              </n-gi>
+            </n-grid>
+            <n-empty v-else description="暂无视频，请先添加视频文件">
+              <template #extra>
+                <n-button type="primary" @click="handleAddVideos">
+                  添加视频
+                </n-button>
+              </template>
+            </n-empty>
+
+            <n-card v-if="hotVideos.length" title="热门推荐" size="small" style="margin-top: 16px">
+              <n-list>
+                <n-list-item v-for="video in hotVideos" :key="video.id" @click="goToVideoById(video.id)">
+                  <n-thing>
+                    <template #header>
+                      <n-space align="center">
+                        <n-text strong>{{ video.title || '未命名视频' }}</n-text>
+                        <n-tag size="small" type="info" v-if="video.categoryName">{{ video.categoryName }}</n-tag>
+                      </n-space>
+                    </template>
+                    <template #description>
+                      <n-text depth="3">播放 {{ video.playCount || 0 }}</n-text>
+                    </template>
+                  </n-thing>
+                </n-list-item>
+              </n-list>
+            </n-card>
+          </template>
+        </n-spin>
       </n-space>
     </n-card>
 
-    <!-- 文件选择器（隐藏） -->
     <input
       ref="fileInputRef"
       type="file"
@@ -93,32 +138,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMessage } from 'naive-ui'
 import { useVideoStore } from '@/store/video'
+import { videoSearchApi } from '@/api/video'
 import { scanVideosFromFiles, groupVideosIntoCollections, isVideoFile } from '@/utils/videoScanner'
 import { registerVideoFile } from '@/utils/videoFileManager'
-import { 
-  SearchOutline as SearchIcon, 
-  AddOutline as AddIcon, 
-  RefreshOutline as RefreshIcon, 
-  VideoLibraryOutline as VideoLibraryIcon, 
-  InformationCircleOutline as InfoIcon 
+import type { BackendVideo } from '@/types'
+import {
+  SearchOutline as SearchIcon,
+  AddOutline as AddIcon,
+  RefreshOutline as RefreshIcon,
+  VideoLibraryOutline as VideoLibraryIcon,
+  InformationCircleOutline as InfoIcon
 } from '@vicons/ionicons5'
-import { useMessage } from 'naive-ui'
 
 const router = useRouter()
 const videoStore = useVideoStore()
 const message = useMessage()
 
 const searchQuery = ref('')
+const searchType = ref<'keyword' | 'tag' | 'category'>('keyword')
+const searchResults = ref<BackendVideo[]>([])
+const searchLoading = ref(false)
+const hotVideos = ref<BackendVideo[]>([])
 const fileInputRef = ref<HTMLInputElement>()
+let searchTimer: number | null = null
+
+const searchOptions = [
+  { label: '关键词', value: 'keyword' },
+  { label: '标签', value: 'tag' },
+  { label: '分类ID', value: 'category' }
+]
 
 const filteredCollections = computed(() => {
   if (!searchQuery.value) {
     return videoStore.collections
   }
-  
+
   const query = searchQuery.value.toLowerCase()
   return videoStore.collections.filter(collection =>
     collection.title.toLowerCase().includes(query) ||
@@ -127,7 +185,56 @@ const filteredCollections = computed(() => {
 })
 
 const handleSearch = () => {
-  // 搜索逻辑已在computed中处理
+  if (searchTimer) {
+    window.clearTimeout(searchTimer)
+  }
+  searchTimer = window.setTimeout(() => {
+    performSearch()
+  }, 300)
+}
+
+const performSearch = async () => {
+  const query = searchQuery.value.trim()
+  if (!query) {
+    searchResults.value = []
+    searchLoading.value = false
+    return
+  }
+
+  searchLoading.value = true
+  try {
+    if (searchType.value === 'keyword') {
+      const page = await videoSearchApi.searchByKeyword(query, 1, 20)
+      searchResults.value = page.records || []
+    } else if (searchType.value === 'tag') {
+      const page = await videoSearchApi.searchByTag(query, 1, 20)
+      searchResults.value = page.records || []
+    } else {
+      const categoryId = Number(query)
+      if (Number.isNaN(categoryId)) {
+        message.warning('分类搜索请输入数字 ID')
+        searchResults.value = []
+      } else {
+        const page = await videoSearchApi.searchByCategory(String(categoryId), 1, 20)
+        searchResults.value = page.records || []
+      }
+    }
+  } catch (error) {
+    console.error('Failed to search videos:', error)
+    message.error('搜索失败')
+    searchResults.value = []
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+const fetchHotVideos = async () => {
+  try {
+    hotVideos.value = await videoSearchApi.getHotVideos()
+  } catch (error) {
+    console.error('Failed to load hot videos:', error)
+    hotVideos.value = []
+  }
 }
 
 const handleAddVideos = () => {
@@ -137,80 +244,69 @@ const handleAddVideos = () => {
 const handleFileSelect = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const files = Array.from(target.files || [])
-  
+
   if (files.length === 0) return
 
   try {
     message.loading('正在上传视频文件...', { duration: 0, key: 'loading' })
-    
-    // 使用后端API上传视频
+
     let uploadedVideos: any[] = []
-    
+
     if (files.length === 1) {
-      // 单个文件上传
       const video = await videoStore.uploadVideo(files[0], (progress) => {
         message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
       })
       uploadedVideos = [video]
     } else {
-      // 批量上传
       uploadedVideos = await videoStore.uploadVideos(files, (progress) => {
         message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
       })
     }
-    
-    // 注册文件到文件管理器（用于本地播放）
+
     uploadedVideos.forEach((video) => {
       const matchingFile = files.find(f => f.name === video.name && isVideoFile(f.name))
       if (matchingFile && matchingFile instanceof File && matchingFile.size > 0) {
         registerVideoFile(video.id, matchingFile)
-        console.log(`✓ Registered: ${video.name} (ID: ${video.id})`)
       }
     })
-    
-    // 重新加载合集列表
+
     await videoStore.loadCollections()
-    
+
     message.destroyAll()
     message.success(`成功上传 ${uploadedVideos.length} 个视频文件`)
-    
-    // 清空文件选择
+
     if (target) target.value = ''
   } catch (error) {
     console.error('Failed to upload videos:', error)
     message.destroyAll()
-    
-    // 如果后端API失败，降级到本地模式
+
     try {
       message.loading('后端上传失败，切换到本地模式...', { duration: 0, key: 'loading' })
-      
+
       const { initDB, saveVideos } = await import('@/utils/storage')
       await initDB()
-      
+
       const videoFiles = await scanVideosFromFiles(files)
-      
-      // 注册文件到文件管理器
+
       videoFiles.forEach((video) => {
         const matchingFile = files.find(f => f.name === video.name && isVideoFile(f.name))
         if (matchingFile && matchingFile instanceof File && matchingFile.size > 0) {
           registerVideoFile(video.id, matchingFile)
         }
       })
-      
+
       const newCollections = groupVideosIntoCollections(videoFiles)
-      
-      // 保存到IndexedDB
+
       await saveVideos(videoFiles.map(v => ({
         ...v,
         fileData: undefined
       })))
-      
-      // 更新store
+
       videoStore.collections.push(...newCollections)
-      
+
       message.destroyAll()
       message.success(`成功添加 ${newCollections.length} 个视频合集（本地模式）`)
-      
+
       if (target) target.value = ''
     } catch (localError) {
       message.destroyAll()
@@ -220,22 +316,29 @@ const handleFileSelect = async (event: Event) => {
 }
 
 const handleScanVideos = async () => {
-  // 由于浏览器安全限制，无法直接访问文件系统
-  // 扫描视频功能实际上就是添加视频文件
-  // 提示用户使用文件选择器
-  message.info('由于浏览器安全限制，请使用"添加视频"功能选择视频文件', {
-    duration: 3000
-  })
-  
-  // 也可以直接触发文件选择器
-  setTimeout(() => {
-    handleAddVideos()
-  }, 500)
+  message.loading('正在请求后端扫描...', { duration: 0, key: 'scan' })
+  try {
+    await videoStore.scanAllVideos()
+    message.destroyAll()
+    message.success('扫描完成')
+  } catch (error) {
+    message.destroyAll()
+    message.error('扫描失败')
+  }
 }
 
 const goToVideoDetail = (id: string) => {
   router.push({ name: 'videoDetail', params: { id } })
 }
+
+const goToVideoById = (id?: number) => {
+  if (!id) return
+  router.push({ name: 'videoDetail', params: { id: String(id) } })
+}
+
+onMounted(() => {
+  fetchHotVideos()
+})
 </script>
 
 <style scoped lang="scss">
@@ -244,7 +347,8 @@ const goToVideoDetail = (id: string) => {
   margin: 0 auto;
 }
 
-.collection-card {
+.collection-card,
+.video-card {
   cursor: pointer;
   transition: transform 0.2s;
 
@@ -263,10 +367,6 @@ const goToVideoDetail = (id: string) => {
   position: relative;
   overflow: hidden;
 
-  .icon-placeholder {
-    font-size: 50px;
-  }
-
   .episode-badge {
     position: absolute;
     top: 8px;
@@ -279,7 +379,66 @@ const goToVideoDetail = (id: string) => {
   }
 }
 
-.collection-meta {
+.video-cover {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  color: #fff;
+
+  img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+}
+
+.collection-meta,
+.video-meta {
   margin-top: 8px;
 }
+
+@media (max-width: 1200px) {
+  .video-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .video-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .collection-cover,
+  .video-cover {
+    height: 150px;
+  }
+
+  .video-cover img {
+    height: 150px;
+  }
+}
+
+@media (max-width: 520px) {
+  .video-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+
+  .collection-cover,
+  .video-cover {
+    height: 140px;
+  }
+
+  .video-cover img {
+    height: 140px;
+  }
+}
 </style>
+

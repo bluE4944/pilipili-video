@@ -1,30 +1,71 @@
 import { apiRequest } from '@/utils/api'
-import type { Comment } from '@/types'
+import type { Comment, BackendComment, PageResult } from '@/types'
 
-// 评论相关 API
+const toTimestamp = (value?: string) => {
+  if (!value) return Date.now()
+  const parsed = Date.parse(value)
+  return Number.isNaN(parsed) ? Date.now() : parsed
+}
+
+const mapComment = (comment: BackendComment): Comment => {
+  return {
+    id: String(comment.id ?? ''),
+    videoId: String(comment.videoId ?? ''),
+    userId: String(comment.userId ?? ''),
+    username: comment.userName || '',
+    content: comment.content || '',
+    createdAt: toTimestamp(comment.createTime),
+    replies: []
+  }
+}
+
 export const commentApi = {
-  // 获取视频的评论
-  getCommentsByVideoId(videoId: string): Promise<Comment[]> {
-    return apiRequest.get<Comment[]>(`/api/comment/video/${videoId}`)
+  async getCommentsByVideoId(videoId: string, pageNum = 1, pageSize = 50, parentId?: number): Promise<Comment[]> {
+    const page = await apiRequest.get<PageResult<BackendComment>>(`/api/video/interaction/comment/${videoId}`, {
+      params: { pageNum, pageSize, parentId }
+    })
+    const records = page?.records || []
+    return records.map(mapComment)
   },
 
-  // 获取合集的评论
-  getCommentsByCollectionId(collectionId: string): Promise<Comment[]> {
-    return apiRequest.get<Comment[]>(`/api/comment/collection/${collectionId}`)
+  async getCommentsByCollectionId(_collectionId: string): Promise<Comment[]> {
+    // Backend only supports video comments. Keep method for compatibility.
+    return []
   },
 
-  // 添加评论
-  addComment(comment: Omit<Comment, 'id' | 'createdAt'>): Promise<Comment> {
-    return apiRequest.post<Comment>('/api/comment', comment)
+  async addComment(comment: {
+    videoId: string
+    content: string
+    parentId?: number
+    userId?: string
+    username?: string
+    userAvatar?: string
+  }): Promise<Comment> {
+    const parsedUserId = comment.userId ? Number(comment.userId) : undefined
+    const payload: BackendComment = {
+      videoId: Number(comment.videoId),
+      content: comment.content,
+      parentId: comment.parentId ?? 0,
+      userId: Number.isNaN(parsedUserId as number) ? undefined : parsedUserId,
+      userName: comment.username,
+      userAvatar: comment.userAvatar
+    }
+
+    const result = await apiRequest.post<BackendComment>('/api/video/interaction/comment', payload)
+    return mapComment(result)
   },
 
-  // 删除评论
   deleteComment(id: string): Promise<void> {
-    return apiRequest.delete<void>(`/api/comment/${id}`)
+    return apiRequest.delete<void>(`/api/video/interaction/comment/${id}`)
   },
 
-  // 回复评论
-  replyComment(commentId: string, reply: Omit<Comment, 'id' | 'createdAt'>): Promise<Comment> {
-    return apiRequest.post<Comment>(`/api/comment/${commentId}/reply`, reply)
+  replyComment(commentId: string, reply: { videoId: string; content: string; userId?: string; username?: string }): Promise<Comment> {
+    return this.addComment({
+      videoId: reply.videoId,
+      content: reply.content,
+      parentId: Number(commentId),
+      userId: reply.userId,
+      username: reply.username
+    })
   }
 }
