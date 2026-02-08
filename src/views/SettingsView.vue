@@ -4,6 +4,28 @@
       <n-space vertical :size="24">
         <h2>设置</h2>
 
+        <n-card title="视频管理" size="small">
+          <n-space vertical :size="12">
+            <n-space>
+              <n-button type="primary" @click="handleAddVideos">
+                <template #icon>
+                  <n-icon><AddIcon /></n-icon>
+                </template>
+                添加视频
+              </n-button>
+              <n-button @click="handleScanVideos" :loading="videoStore.scanning">
+                <template #icon>
+                  <n-icon><RefreshIcon /></n-icon>
+                </template>
+                扫描视频
+              </n-button>
+            </n-space>
+            <n-text depth="3">
+              如需访问局域网文件夹，请先在下方配置后端扫描目录。
+            </n-text>
+          </n-space>
+        </n-card>
+
         <n-card title="文件夹配置" size="small">
           <n-space vertical :size="16">
             <n-alert type="info" :show-icon="false">
@@ -58,7 +80,7 @@
           <n-space vertical :size="16">
             <n-radio-group v-model:value="themeStore.theme" @update:value="handleThemeChange">
               <n-space>
-                <n-radio value="light">ǳɫ</n-radio>
+                <n-radio value="light">浅色</n-radio>
                 <n-radio value="dark">深色</n-radio>
                 <n-radio value="auto">跟随系统</n-radio>
               </n-space>
@@ -100,6 +122,15 @@
         </n-space>
       </template>
     </n-modal>
+
+    <input
+      ref="fileInputRef"
+      type="file"
+      multiple
+      accept="video/*"
+      style="display: none"
+      @change="handleFileSelect"
+    />
   </div>
 </template>
 
@@ -107,18 +138,23 @@
 import { ref, reactive } from 'vue'
 import { useFolderStore } from '@/store/folder'
 import { useThemeStore } from '@/store/theme'
+import { useVideoStore } from '@/store/video'
 import type { FolderConfig } from '@/types'
-import { AddOutline as AddIcon, CreateOutline as EditIcon, TrashOutline as TrashIcon } from '@vicons/ionicons5'
+import { AddOutline as AddIcon, CreateOutline as EditIcon, TrashOutline as TrashIcon, RefreshOutline as RefreshIcon } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { getErrorMessage } from '@/utils/error'
+import { isVideoFile } from '@/utils/videoScanner'
+import { registerVideoFile } from '@/utils/videoFileManager'
 
 const folderStore = useFolderStore()
 const themeStore = useThemeStore()
+const videoStore = useVideoStore()
 const message = useMessage()
 
 const showAddDialog = ref(false)
 const editingFolderId = ref<string | null>(null)
 const autoPlayNext = ref(true)
+const fileInputRef = ref<HTMLInputElement>()
 
 const folderForm = reactive({
   name: '',
@@ -198,6 +234,64 @@ const handleSaveFolder = async () => {
 const handleThemeChange = (value: string) => {
   themeStore.setTheme(value as 'light' | 'dark' | 'auto')
   message.success('主题已切换')
+}
+
+const handleAddVideos = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = Array.from(target.files || [])
+
+  if (files.length === 0) return
+
+  try {
+    message.loading('正在上传视频文件...', { duration: 0, key: 'loading' })
+
+    let uploadedVideos: any[] = []
+
+    if (files.length === 1) {
+      const video = await videoStore.uploadVideo(files[0], (progress) => {
+        message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
+      })
+      uploadedVideos = [video]
+    } else {
+      uploadedVideos = await videoStore.uploadVideos(files, (progress) => {
+        message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
+      })
+    }
+
+    uploadedVideos.forEach((video) => {
+      const matchingFile = files.find(f => f.name === video.name && isVideoFile(f.name))
+      if (matchingFile && matchingFile instanceof File && matchingFile.size > 0) {
+        registerVideoFile(video.id, matchingFile)
+      }
+    })
+
+    await videoStore.loadCollections()
+
+    message.destroyAll()
+    message.success(`成功上传 ${uploadedVideos.length} 个视频文件`)
+  } catch (error) {
+    console.error('Failed to upload videos:', error)
+    message.destroyAll()
+    message.error(getErrorMessage(error))
+  } finally {
+    if (target) target.value = ''
+  }
+}
+
+const handleScanVideos = async () => {
+  message.loading('正在请求后端扫描...', { duration: 0, key: 'scan' })
+  try {
+    await videoStore.scanAllVideos()
+    message.destroyAll()
+    message.success('扫描完成')
+  } catch (error) {
+    message.destroyAll()
+    message.error(getErrorMessage(error))
+  }
 }
 </script>
 

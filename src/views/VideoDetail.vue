@@ -63,39 +63,28 @@
           </n-space>
         </n-card>
 
-        <n-card title="分集列表">
-          <n-list>
-            <n-list-item
-              v-for="(video, index) in collection.videos"
-              :key="video.id"
-              :class="{ 'episode-active': index === currentEpisodeIndex }"
-              @click="switchEpisode(index)"
-            >
-              <n-thing>
-                <template #header>
-                  <n-space align="center">
-                    <n-text :type="index === currentEpisodeIndex ? 'primary' : 'default'">
-                      第 {{ index + 1 }} 集
-                    </n-text>
-                    <n-tag v-if="index === currentEpisodeIndex" type="info" size="small">
-                      正在播放
-                    </n-tag>
-                  </n-space>
-                </template>
-                <template #description>
-                  <n-text depth="3">{{ video.name }}</n-text>
-                  <n-space style="margin-top: 8px">
-                    <n-text depth="3" style="font-size: 12px">
-                      {{ formatFileSize(video.size) }}
-                    </n-text>
-                    <n-text depth="3" style="font-size: 12px" v-if="video.duration">
-                      {{ formatDuration(video.duration) }}
-                    </n-text>
-                  </n-space>
-                </template>
-              </n-thing>
-            </n-list-item>
-          </n-list>
+        <n-card title="分集列表" v-if="collection.videos.length > 1">
+          <div class="episodes-grid">
+            <n-tooltip v-for="(video, index) in collection.videos" :key="video.id">
+              <template #trigger>
+                <n-button
+                  size="small"
+                  class="episode-button"
+                  :type="index === currentEpisodeIndex ? 'primary' : 'default'"
+                  :secondary="index !== currentEpisodeIndex"
+                  @click="switchEpisode(index)"
+                >
+                  第 {{ index + 1 }} 集
+                </n-button>
+              </template>
+              <div class="episode-tooltip">
+                <div class="episode-tooltip-title">{{ video.name }}</div>
+                <div class="episode-tooltip-meta" v-if="video.duration">
+                  时长 {{ formatDuration(video.duration) }}
+                </div>
+              </div>
+            </n-tooltip>
+          </div>
         </n-card>
 
         <n-grid class="detail-grid" :cols="24" :x-gap="16" :y-gap="16">
@@ -128,6 +117,13 @@
           <n-list v-if="relatedVideos.length">
             <n-list-item v-for="video in relatedVideos" :key="video.id" @click="goToRelatedVideo(video.id)">
               <n-thing>
+                <template #avatar>
+                  <img
+                    class="related-cover"
+                    :src="resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')"
+                    alt="cover"
+                  />
+                </template>
                 <template #header>
                   <n-space align="center">
                     <n-text strong>{{ video.title || '未命名视频' }}</n-text>
@@ -135,7 +131,9 @@
                   </n-space>
                 </template>
                 <template #description>
-                  <n-text depth="3">{{ video.userName || '未知作者' }}</n-text>
+                  <n-text depth="3">
+                    {{ video.userName || '未知作者' }} · 播放 {{ video.playCount || 0 }}
+                  </n-text>
                 </template>
               </n-thing>
             </n-list-item>
@@ -171,6 +169,8 @@ import DanmakuPanel from '@/components/DanmakuPanel.vue'
 import { formatFileSize, formatDuration } from '@/utils/format'
 import { isNumericId } from '@/utils/id'
 import { getErrorMessage } from '@/utils/error'
+import { resolveApiUrl } from '@/utils/api'
+import { getFallbackCover } from '@/utils/fallbackCover'
 import { videoApi, videoSearchApi, videoStatisticsApi } from '@/api/video'
 import { likeApi, collectApi } from '@/api/interaction'
 import type { BackendVideo, VideoCollection, VideoFile } from '@/types'
@@ -229,7 +229,7 @@ const mapVideoToFile = (video: BackendVideo): VideoFile => {
     modifiedTime: toTimestamp(video.updateTime || video.createTime),
     format: video.format || 'mp4',
     duration: video.duration ?? undefined,
-    thumbnail: video.coverUrl
+    thumbnail: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')
   }
 }
 
@@ -238,7 +238,7 @@ const buildSingleCollection = (video: BackendVideo): VideoCollection => {
     id: String(video.id ?? collectionId.value),
     title: video.title || '视频',
     description: video.description || '',
-    cover: video.coverUrl,
+    cover: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? ''),
     videos: [mapVideoToFile(video)],
     totalEpisodes: 1,
     createdAt: toTimestamp(video.createTime),
@@ -432,6 +432,35 @@ watch(currentVideoId, async (newVideoId) => {
 .episode-active {
   background: var(--n-color-hover);
   border-radius: 4px;
+}
+
+.episodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
+}
+
+.episode-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.episode-tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.episode-tooltip-meta {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.related-cover {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #111;
 }
 
 @media (max-width: 900px) {

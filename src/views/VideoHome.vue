@@ -1,7 +1,32 @@
 <template>
   <div class="video-home">
-    <n-card>
-      <n-space vertical :size="20">
+    <div class="hero-banner">
+      <n-carousel
+        class="hero-carousel"
+        autoplay
+        :interval="5000"
+        :show-dots="hotVideos.length > 1"
+        dot-type="line"
+        show-arrow
+      >
+        <n-carousel-item v-for="item in hotVideos" :key="item.id">
+          <div class="hero-slide" :style="{ backgroundImage: `url(${resolveVideoCover(item)})` }">
+            <div class="hero-mask"></div>
+            <div class="hero-content">
+              <div class="hero-text">
+                <h2>{{ item.title || '推荐视频' }}</h2>
+                <p>{{ item.description || '发现更多精彩内容' }}</p>
+              </div>
+            </div>
+          </div>
+        </n-carousel-item>
+      </n-carousel>
+      <div
+        class="hero-search"
+        :style="searchStyle"
+        @mousedown="onSearchMouseDown"
+        ref="searchRef"
+      >
         <n-space align="center" :wrap="true">
           <n-select v-model:value="searchType" :options="searchOptions" style="width: 120px" />
           <n-input
@@ -11,39 +36,49 @@
             @update:value="handleSearch"
           >
             <template #prefix>
-              <n-icon><SearchIcon /></n-icon>
+              <n-icon v-if="searchIcon">
+                <component :is="searchIcon" />
+              </n-icon>
             </template>
           </n-input>
         </n-space>
+      </div>
+    </div>
 
+    <n-card class="hot-card" v-if="recentWatching.length">
+      <div class="hot-header">
+        <n-text strong>最近在看</n-text>
+      </div>
+      <div class="hot-scroll" :style="hotScrollStyle">
+        <div
+          v-for="item in visibleRecentWatching"
+          :key="item.id"
+          class="hot-item"
+          @click="goToVideoDetail(item.id)"
+        >
+          <div class="hot-cover">
+            <img :src="item.cover" alt="cover" />
+            <div class="hot-title">{{ item.title || '未命名视频' }}</div>
+            <div class="hot-plays">{{ item.totalEpisodes }} 集</div>
+            <div class="play-badge" v-if="item.playCount !== undefined">
+              播放 {{ item.playCount || 0 }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </n-card>
+
+    <n-card>
+      <n-space vertical :size="20">
         <n-space justify="space-between" :wrap="true">
-          <n-space>
-            <n-button type="primary" @click="handleAddVideos">
-              <template #icon>
-                <n-icon><AddIcon /></n-icon>
-              </template>
-              添加视频
-            </n-button>
-            <n-button @click="handleScanVideos" :loading="videoStore.scanning">
-              <template #icon>
-                <n-icon><RefreshIcon /></n-icon>
-              </template>
-              扫描视频
-            </n-button>
-            <n-popover trigger="hover">
-              <template #trigger>
-                <n-button quaternary circle>
-                  <template #icon>
-                    <n-icon><InfoIcon /></n-icon>
-                  </template>
-                </n-button>
-              </template>
-              <span>如果浏览器无法访问本地文件，请使用后端扫描或上传功能。</span>
-            </n-popover>
-          </n-space>
           <n-space>
             <n-text depth="3">
               共 {{ searchQuery ? searchResults.length : filteredCollections.length }} 条结果
+            </n-text>
+          </n-space>
+          <n-space>
+            <n-text depth="3" v-if="isLoadingMore">
+              正在加载更多...
             </n-text>
           </n-space>
         </n-space>
@@ -55,8 +90,10 @@
                 <n-card hoverable @click="goToVideoById(video.id)" class="video-card">
                   <template #cover>
                     <div class="video-cover">
-                      <img v-if="video.coverUrl" :src="video.coverUrl" alt="cover" />
-                      <n-icon v-else :size="48"><VideoLibraryIcon /></n-icon>
+                      <img :src="resolveVideoCover(video)" alt="cover" />
+                      <div class="play-badge">
+                        播放 {{ video.playCount || 0 }}
+                      </div>
                     </div>
                   </template>
                   <n-ellipsis :tooltip="false" style="font-weight: 500">
@@ -79,10 +116,14 @@
                 <n-card hoverable @click="goToVideoDetail(collection.id)" class="collection-card">
                   <template #cover>
                     <div class="collection-cover">
-                      <n-icon :size="50">
-                        <VideoLibraryIcon />
-                      </n-icon>
-                      <div class="episode-badge">{{ collection.totalEpisodes }} 集</div>
+                      <img
+                        class="collection-cover-img"
+                        :src="resolveApiUrl(collection.cover) || getFallbackCover(collection.id ?? '')"
+                        alt="cover"
+                      />
+                      <div class="episode-badge" v-if="collection.totalEpisodes > 1">
+                        {{ collection.totalEpisodes }} 集
+                      </div>
                     </div>
                   </template>
                   <n-ellipsis :tooltip="false" style="font-weight: 500">
@@ -96,76 +137,90 @@
                 </n-card>
               </n-gi>
             </n-grid>
-            <n-empty v-else description="暂无视频，请先添加视频文件">
-              <template #extra>
-                <n-button type="primary" @click="handleAddVideos">
-                  添加视频
-                </n-button>
-              </template>
-            </n-empty>
+            <n-empty v-else description="暂无视频，请先在设置中添加视频或扫描" />
 
-            <n-card v-if="hotVideos.length" title="热门推荐" size="small" style="margin-top: 16px">
-              <n-list>
-                <n-list-item v-for="video in hotVideos" :key="video.id" @click="goToVideoById(video.id)">
-                  <n-thing>
-                    <template #header>
-                      <n-space align="center">
-                        <n-text strong>{{ video.title || '未命名视频' }}</n-text>
-                        <n-tag size="small" type="info" v-if="video.categoryName">{{ video.categoryName }}</n-tag>
-                      </n-space>
-                    </template>
-                    <template #description>
-                      <n-text depth="3">播放 {{ video.playCount || 0 }}</n-text>
-                    </template>
-                  </n-thing>
-                </n-list-item>
-              </n-list>
-            </n-card>
           </template>
         </n-spin>
       </n-space>
     </n-card>
 
-    <input
-      ref="fileInputRef"
-      type="file"
-      multiple
-      accept="video/*"
-      style="display: none"
-      @change="handleFileSelect"
-    />
+    <n-back-top :right="24" :bottom="32" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useVideoStore } from '@/store/video'
-import { videoSearchApi } from '@/api/video'
-import { isVideoFile } from '@/utils/videoScanner'
-import { registerVideoFile } from '@/utils/videoFileManager'
+import { videoSearchApi, videoApi } from '@/api/video'
 import type { BackendVideo } from '@/types'
 import { getErrorMessage } from '@/utils/error'
+import { resolveApiUrl } from '@/utils/api'
+import { getFallbackCover } from '@/utils/fallbackCover'
 import {
   SearchOutline as SearchIcon,
-  AddOutline as AddIcon,
-  RefreshOutline as RefreshIcon,
-  VideoLibraryOutline as VideoLibraryIcon,
-  InformationCircleOutline as InfoIcon
+  VideoLibraryOutline as VideoLibraryIcon
 } from '@vicons/ionicons5'
 
 const router = useRouter()
 const videoStore = useVideoStore()
 const message = useMessage()
+const videoLibraryIcon = VideoLibraryIcon || null
+const searchIcon = SearchIcon || null
+
+const resolveVideoCover = (video: BackendVideo) => {
+  return resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')
+}
+
+const hotColumns = computed(() => {
+  if (windowWidth.value >= 1200) return 6
+  if (windowWidth.value >= 992) return 5
+  return 4
+})
+
+const recentWatching = computed(() => {
+  return (videoStore.recentPlayList || [])
+    .filter(item => item.video && item.video.id)
+    .slice(0, 6)
+    .map(item => ({
+      id: String(item.video!.id ?? ''),
+      title: item.video!.title || '未命名视频',
+      cover: resolveApiUrl(item.video!.coverUrl) || getFallbackCover(item.video!.id ?? ''),
+      totalEpisodes: 1,
+      playCount: item.video!.playCount ?? 0
+    }))
+})
+
+const visibleRecentWatching = computed(() => {
+  return hotColumns.value > 4 ? recentWatching.value.slice(0, hotColumns.value) : recentWatching.value
+})
+
+const hotScrollStyle = computed(() => ({
+  '--hot-columns': String(hotColumns.value)
+}))
 
 const searchQuery = ref('')
 const searchType = ref<'keyword' | 'tag' | 'category'>('keyword')
 const searchResults = ref<BackendVideo[]>([])
 const searchLoading = ref(false)
 const hotVideos = ref<BackendVideo[]>([])
-const fileInputRef = ref<HTMLInputElement>()
+const windowWidth = ref(window.innerWidth)
 let searchTimer: number | null = null
+const pageNum = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const isLoadingMore = ref(false)
+const searchPos = ref({ x: 0, y: 0 })
+const isDraggingSearch = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+const searchRef = ref<HTMLDivElement | null>(null)
+const searchStyle = computed(() => ({
+  position: 'fixed',
+  left: `${searchPos.value.x}px`,
+  top: `${searchPos.value.y}px`
+}))
+
 
 const searchOptions = [
   { label: '关键词', value: 'keyword' },
@@ -196,10 +251,13 @@ const handleSearch = () => {
 
 const performSearch = async () => {
   const query = searchQuery.value.trim()
-  if (!query) {
-    searchResults.value = []
-    searchLoading.value = false
-    return
+  if (!query) {
+    searchResults.value = []
+
+    searchLoading.value = false
+
+    return
+
   }
 
   searchLoading.value = true
@@ -238,61 +296,84 @@ const fetchHotVideos = async () => {
   }
 }
 
-const handleAddVideos = () => {
-  fileInputRef.value?.click()
-}
-
-const handleFileSelect = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const files = Array.from(target.files || [])
-
-  if (files.length === 0) return
-
+const loadCollectionsPage = async (reset = false) => {
+  if (isLoadingMore.value) return
+  if (reset) {
+    pageNum.value = 1
+    total.value = 0
+    videoStore.collections = []
+  }
+  isLoadingMore.value = true
   try {
-    message.loading('正在上传视频文件...', { duration: 0, key: 'loading' })
-
-    let uploadedVideos: any[] = []
-
-    if (files.length === 1) {
-      const video = await videoStore.uploadVideo(files[0], (progress) => {
-        message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
-      })
-      uploadedVideos = [video]
-    } else {
-      uploadedVideos = await videoStore.uploadVideos(files, (progress) => {
-        message.loading(`上传中... ${progress}%`, { duration: 0, key: 'loading' })
-      })
+    const page = await videoApi.getCollectionsPage(pageNum.value, pageSize.value)
+    total.value = page.total || 0
+    const records = page.records || []
+    if (pageNum.value === 1) {
+      videoStore.collections = records
+    } else if (records.length > 0) {
+      videoStore.collections.push(...records)
     }
-
-    uploadedVideos.forEach((video) => {
-      const matchingFile = files.find(f => f.name === video.name && isVideoFile(f.name))
-      if (matchingFile && matchingFile instanceof File && matchingFile.size > 0) {
-        registerVideoFile(video.id, matchingFile)
-      }
-    })
-
-    await videoStore.loadCollections()
-
-    message.destroyAll()
-    message.success(`成功上传 ${uploadedVideos.length} 个视频文件`)
+    if (records.length > 0) {
+      pageNum.value += 1
+    }
   } catch (error) {
-    console.error('Failed to upload videos:', error)
-    message.destroyAll()
+    console.error('Failed to load collections:', error)
     message.error(getErrorMessage(error))
   } finally {
-    if (target) target.value = ''
+    isLoadingMore.value = false
   }
 }
 
-const handleScanVideos = async () => {
-  message.loading('正在请求后端扫描...', { duration: 0, key: 'scan' })
-  try {
-    await videoStore.scanAllVideos()
-    message.destroyAll()
-    message.success('扫描完成')
-  } catch (error) {
-    message.destroyAll()
-    message.error(getErrorMessage(error))
+const initSearchPos = () => {
+  if (searchPos.value.x !== 0 || searchPos.value.y !== 0) return
+  const width = searchRef.value?.offsetWidth || 360
+  searchPos.value = {
+    x: Math.max(16, Math.round((window.innerWidth - width) / 2)),
+    y: 96
+  }
+}
+
+const onSearchMouseDown = (event: MouseEvent) => {
+  if ((event.target as HTMLElement).closest('.n-select, .n-input, input')) return
+  event.preventDefault()
+  isDraggingSearch.value = true
+  dragOffset.value = {
+    x: event.clientX - searchPos.value.x,
+    y: event.clientY - searchPos.value.y
+  }
+  window.addEventListener('mousemove', onSearchMouseMove)
+  window.addEventListener('mouseup', onSearchMouseUp)
+}
+
+const onSearchMouseMove = (event: MouseEvent) => {
+  if (!isDraggingSearch.value) return
+  searchPos.value = {
+    x: Math.max(16, Math.min(window.innerWidth - 200, event.clientX - dragOffset.value.x)),
+    y: Math.max(16, Math.min(window.innerHeight - 80, event.clientY - dragOffset.value.y))
+  }
+}
+
+const onSearchMouseUp = () => {
+  isDraggingSearch.value = false
+  window.removeEventListener('mousemove', onSearchMouseMove)
+  window.removeEventListener('mouseup', onSearchMouseUp)
+}
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
+const handleScroll = () => {
+  if (searchQuery.value) return
+  if (isLoadingMore.value) return
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+  const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+  if (scrollTop + viewportHeight + 200 >= fullHeight) {
+    const loaded = videoStore.collections.length
+    if (total.value === 0 || loaded < total.value) {
+      loadCollectionsPage()
+    }
   }
 }
 
@@ -307,6 +388,20 @@ const goToVideoById = (id?: number) => {
 
 onMounted(() => {
   fetchHotVideos()
+  loadCollectionsPage(true)
+  videoStore.loadRecentPlayList(6)
+  initSearchPos()
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('resize', initSearchPos, { passive: true })
+  window.addEventListener('resize', handleResize, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', initSearchPos)
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('mousemove', onSearchMouseMove)
+  window.removeEventListener('mouseup', onSearchMouseUp)
 })
 </script>
 
@@ -314,6 +409,81 @@ onMounted(() => {
 .video-home {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.hero-banner {
+  position: relative;
+  height: 320px;
+  border-radius: 12px;
+  overflow: visible;
+  margin-bottom: 32px;
+}
+
+.hero-carousel {
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hero-slide {
+  position: relative;
+  height: 320px;
+  background: linear-gradient(135deg, #1f7cc0 0%, #00b5e5 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+.hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  color: #fff;
+  z-index: 1;
+}
+
+.hero-text h2 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.hero-text p {
+  max-width: 520px;
+  opacity: 0.85;
+}
+
+.hero-search {
+  z-index: 10;
+  background: var(--n-card-color);
+  padding: 12px 16px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--n-border-color);
+  cursor: move;
+  user-select: none;
+}
+
+.hero-search :deep(.n-input) {
+  min-width: 280px;
+}
+
+.hero-search :deep(.n-input__input) {
+  color: var(--n-text-color);
+}
+
+.hero-search :deep(.n-input__placeholder) {
+  color: var(--n-text-color-3);
+}
+
+.hero-search :deep(.n-base-selection) {
+  background-color: transparent;
 }
 
 .collection-card,
@@ -348,6 +518,12 @@ onMounted(() => {
   }
 }
 
+.collection-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .video-cover {
   height: 180px;
   display: flex;
@@ -355,6 +531,7 @@ onMounted(() => {
   justify-content: center;
   background: #111;
   color: #fff;
+  position: relative;
 
   img {
     width: 100%;
@@ -381,6 +558,23 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .hero-banner {
+    height: 240px;
+  }
+
+  .hero-slide {
+    height: 240px;
+  }
+
+  .hero-search {
+    width: calc(100% - 24px);
+    border-radius: 12px;
+  }
+
+  .hero-search :deep(.n-input) {
+    min-width: 160px;
+  }
+
   .video-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
@@ -396,6 +590,14 @@ onMounted(() => {
 }
 
 @media (max-width: 520px) {
+  .hero-text h2 {
+    font-size: 20px;
+  }
+
+  .hero-text p {
+    font-size: 12px;
+  }
+
   .video-grid {
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
@@ -409,5 +611,80 @@ onMounted(() => {
     height: 140px;
   }
 }
+
+.hot-card {
+  margin-bottom: 16px;
+}
+
+.hot-header {
+  margin-bottom: 12px;
+}
+
+.hot-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x mandatory;
+  --hot-columns: 6;
+}
+
+.hot-item {
+  flex: 0 0 auto;
+  width: calc((100% - (var(--hot-columns) - 1) * 12px) / var(--hot-columns));
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.hot-cover {
+  position: relative;
+  height: 124px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #111;
+}
+
+.hot-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hot-title {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  max-width: calc(100% - 16px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.hot-plays {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.play-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
 </style>
-

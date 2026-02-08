@@ -5,6 +5,17 @@ import { SYSTEM_ERROR_MESSAGE } from '@/utils/error'
 // Vue CLI uses process.env, variables must start with VUE_APP_
 export const API_BASE_URL = (process.env.VUE_APP_API_BASE_URL as string) || 'http://localhost:8316'
 
+export const resolveApiUrl = (url?: string) => {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url) || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url
+  }
+  if (url.startsWith('/')) {
+    return `${API_BASE_URL}${url}`
+  }
+  return `${API_BASE_URL}/${url}`
+}
+
 type ApiResult<T> = {
   status: number
   message: string

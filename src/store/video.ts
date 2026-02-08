@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { VideoCollection, VideoFile, PlayRecord } from '@/types'
+import type { VideoCollection, VideoFile, PlayRecord, BackendVideoPlayHistoryItem } from '@/types'
 import { videoApi, playRecordApi } from '@/api/video'
 import { folderApi } from '@/api/folder'
 
 export const useVideoStore = defineStore('video', () => {
   const collections = ref<VideoCollection[]>([])
   const playRecords = ref<Map<string, PlayRecord>>(new Map())
+  const recentPlayList = ref<BackendVideoPlayHistoryItem[]>([])
   const currentCollection = ref<VideoCollection | null>(null)
   const currentVideo = ref<VideoFile | null>(null)
   const scanning = ref(false)
@@ -81,6 +82,18 @@ export const useVideoStore = defineStore('video', () => {
     }
 
     return null
+  }
+
+  const loadRecentPlayList = async (size = 10) => {
+    try {
+      const items = await playRecordApi.getRecentPlayList(size)
+      recentPlayList.value = items || []
+      return recentPlayList.value
+    } catch (error) {
+      console.error('Failed to load recent play list:', error)
+      recentPlayList.value = []
+      return recentPlayList.value
+    }
   }
 
   const uploadVideo = async (file: File, onProgress?: (progress: number) => void) => {
@@ -172,11 +185,13 @@ export const useVideoStore = defineStore('video', () => {
   return {
     collections,
     playRecords,
+    recentPlayList,
     currentCollection,
     currentVideo,
     scanning,
     loadCollections,
     loadCollectionDetail,
+    loadRecentPlayList,
     scanAllVideos,
     savePlayRecord,
     getPlayRecord,

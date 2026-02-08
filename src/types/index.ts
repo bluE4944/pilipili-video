@@ -187,6 +187,11 @@ export interface BackendPlayHistory {
   updateTime?: string
 }
 
+export interface BackendVideoPlayHistoryItem {
+  history?: BackendPlayHistory
+  video?: BackendVideo
+}
+
 export interface BackendComment {
   id?: number
   videoId?: number

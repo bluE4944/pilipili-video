@@ -1,4 +1,5 @@
-import { apiRequest, API_BASE_URL } from '@/utils/api'
+import { apiRequest, API_BASE_URL, resolveApiUrl } from '@/utils/api'
+import { getFallbackCover } from '@/utils/fallbackCover'
 import type {
   VideoCollection,
   VideoFile,
@@ -7,6 +8,7 @@ import type {
   BackendVideoListItem,
   BackendVideoEpisode,
   BackendVideo,
+  BackendVideoPlayHistoryItem,
   BackendPlayHistory,
   PageResult
 } from '@/types'
@@ -39,19 +41,22 @@ const mapVideoEntityToVideoFile = (video: BackendVideo, fallbackName?: string): 
     modifiedTime: toTimestamp(video.updateTime || video.createTime),
     format: video.format || 'mp4',
     duration: video.duration ?? undefined,
-    thumbnail: video.coverUrl
+    thumbnail: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')
   }
 }
 
 const mapCollectionEntityToCollection = (
-  collection: BackendVideoCollection,
+  collection: BackendVideoCollection | null | undefined,
   episodes?: BackendVideoEpisode[]
 ): VideoCollection => {
+  if (!collection) {
+    throw new Error('后端返回空的合集数据')
+  }
   return {
     id: String(collection.id ?? ''),
     title: collection.title || '',
     description: collection.description || '',
-    cover: collection.coverUrl,
+    cover: resolveApiUrl(collection.coverUrl) || getFallbackCover(collection.id ?? ''),
     videos: episodes ? episodes.map(mapEpisodeToVideoFile) : [],
     totalEpisodes: Number(collection.videoCount ?? (episodes ? episodes.length : 0)),
     createdAt: toTimestamp(collection.createTime),
@@ -68,7 +73,7 @@ const mapVideoEntityToCollection = (video: BackendVideo): VideoCollection => {
     id: String(video.id ?? ''),
     title: video.title || '',
     description: video.description || '',
-    cover: video.coverUrl,
+    cover: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? ''),
     videos: [mapVideoEntityToVideoFile(video, video.title || '')],
     totalEpisodes: 1,
     createdAt: toTimestamp(video.createTime),
@@ -115,16 +120,27 @@ export interface UploadVideoOptions {
 }
 
 export const videoApi = {
-  async getCollections(pageNum = 1, pageSize = 200): Promise<VideoCollection[]> {
+  async getCollectionsPage(pageNum = 1, pageSize = 20): Promise<PageResult<VideoCollection>> {
     const page = await apiRequest.get<PageResult<BackendVideoListItem>>('/api/video/page/mixed', {
       params: { pageNum, pageSize }
     })
     const records = page?.records || []
-    return records.map((item) => mapMixedRecordToCollection(item))
+    return {
+      ...page,
+      records: records.map((item) => mapMixedRecordToCollection(item))
+    }
+  },
+
+  async getCollections(pageNum = 1, pageSize = 200): Promise<VideoCollection[]> {
+    const page = await videoApi.getCollectionsPage(pageNum, pageSize)
+    return page.records || []
   },
 
   async getCollectionById(id: string): Promise<VideoCollection> {
     const collection = await apiRequest.get<BackendVideoCollection>(`/api/video/collection/${id}`)
+    if (!collection || !collection.id) {
+      throw new Error('未找到该合集或已被删除')
+    }
     const episodes = await apiRequest.get<BackendVideoEpisode[]>(`/api/video/collection/${id}/episodes`)
     return mapCollectionEntityToCollection(collection, episodes)
   },
@@ -274,6 +290,12 @@ export const playRecordApi = {
     const result = await apiRequest.get<BackendPlayHistory>(`/api/video/play/progress/${videoId}`)
     if (!result || !result.videoId) return null
     return mapPlayHistoryToRecord(result)
+  },
+
+  getRecentPlayList(size = 10): Promise<BackendVideoPlayHistoryItem[]> {
+    return apiRequest.get<BackendVideoPlayHistoryItem[]>('/api/video/play/recent', {
+      params: { size }
+    })
   }
 }
 

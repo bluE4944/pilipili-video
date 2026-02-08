@@ -13,7 +13,7 @@
       />
     </div>
     <div class="header-right">
-      <n-dropdown class="header-menu-mobile" :options="menuOptions" @select="handleMenuSelect">
+      <n-dropdown class="header-menu-mobile" trigger="click" :options="menuOptions" @select="handleMenuSelect">
         <n-button quaternary circle>
           <template #icon>
             <n-icon><MenuIcon /></n-icon>
@@ -28,7 +28,7 @@
           </n-icon>
         </template>
       </n-button>
-      <n-dropdown :options="userOptions" @select="handleUserAction">
+      <n-dropdown trigger="click" :options="userOptions" @select="handleUserAction">
         <n-button quaternary class="user-button">
           <template #icon>
             <n-icon><PersonIcon /></n-icon>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useThemeStore } from '@/store/theme'
 import { useUserStore } from '@/store/user'
@@ -57,11 +57,20 @@ const route = useRoute()
 const themeStore = useThemeStore()
 const userStore = useUserStore()
 
-const activeKey = computed(() => {
+const resolveActiveKey = () => {
   if (route.name === 'videoDetail') return 'video'
   if (route.name === 'blogDetail') return 'blog'
   return route.name as string
-})
+}
+
+const activeKey = ref(resolveActiveKey())
+
+watch(
+  () => route.name,
+  () => {
+    activeKey.value = resolveActiveKey()
+  }
+)
 
 const menuOptions = [
   {
@@ -104,6 +113,7 @@ const userOptions = computed(() => {
 })
 
 const handleMenuSelect = (key: string) => {
+  activeKey.value = key
   router.push({ name: key })
 }
 

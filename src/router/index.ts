@@ -99,7 +99,7 @@ const routes: RouteRecordRaw[] = [
 
     component: () => import('@/views/AboutView.vue'),
 
-    meta: { title: '??', requiresAuth: false, allowGuest: true }
+    meta: { title: '\u5173\u4e8e', requiresAuth: false, allowGuest: true }
 
   }
 
