@@ -3,12 +3,27 @@
     <n-card>
       <n-space vertical :size="20">
         <div class="video-info">
+          <div class="video-info-actions">
+            <n-tooltip>
+              <template #trigger>
+                <n-button circle secondary class="video-back-button" @click="handleBack">
+                  <template #icon>
+                    <n-icon v-if="backIcon">
+                      <component :is="backIcon" />
+                    </n-icon>
+                  </template>
+                </n-button>
+              </template>
+              返回
+            </n-tooltip>
+          </div>
           <h1>{{ collection.title }}</h1>
           <n-text depth="3">{{ collection.description }}</n-text>
         </div>
 
         <div class="player-section">
           <VideoPlayer
+            v-if="playerReady"
             ref="playerRef"
             :collection="collection"
             :initial-episode="currentEpisodeIndex"
@@ -113,40 +128,37 @@
           </n-gi>
         </n-grid>
 
-        <n-card title="相关视频" size="small">
-          <n-list v-if="relatedVideos.length">
-            <n-list-item v-for="video in relatedVideos" :key="video.id" @click="goToRelatedVideo(video.id)">
-              <n-thing>
-                <template #avatar>
-                  <img
-                    class="related-cover"
-                    :src="resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')"
-                    alt="cover"
-                  />
-                </template>
-                <template #header>
-                  <n-space align="center">
-                    <n-text strong>{{ video.title || '未命名视频' }}</n-text>
-                    <n-tag size="small" type="info" v-if="video.categoryName">{{ video.categoryName }}</n-tag>
-                  </n-space>
-                </template>
-                <template #description>
-                  <n-text depth="3">
-                    {{ video.userName || '未知作者' }} · 播放 {{ video.playCount || 0 }}
-                  </n-text>
-                </template>
-              </n-thing>
-            </n-list-item>
-          </n-list>
-          <n-empty v-else description="暂无相关视频" />
-        </n-card>
-
         <n-card title="弹幕" size="small">
           <DanmakuPanel :video-id="currentVideoId" :get-current-time="getCurrentTime" />
         </n-card>
 
         <n-card title="评论区">
-          <CommentSection :video-id="currentVideoId" :collection-id="collection.id" />
+          <CommentSection
+            :video-id="currentVideoId"
+            :collection-id="collection.id"
+            @submitted="refreshCurrentVideoData"
+          />
+        </n-card>
+
+        <n-card title="相关视频" size="small">
+          <n-grid
+            v-if="relatedGridItems.length"
+            class="related-grid"
+            :cols="relatedColumns"
+            :x-gap="12"
+            :y-gap="12"
+          >
+            <n-gi v-for="video in relatedGridItems" :key="video.id">
+              <div class="related-card" @click="goToRelatedVideo(Number(video.id))">
+                <div class="related-cover">
+                  <img :src="video.cover" alt="cover" />
+                  <div class="related-title">{{ video.title || '未命名视频' }}</div>
+                  <div class="related-plays">播放 {{ video.playCount || 0 }}</div>
+                </div>
+              </div>
+            </n-gi>
+          </n-grid>
+          <n-empty v-else description="暂无相关视频" />
         </n-card>
       </n-space>
     </n-card>
@@ -159,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useVideoStore } from '@/store/video'
@@ -178,18 +190,21 @@ import {
   HeartOutline as HeartOutlineIcon,
   Heart as HeartIcon,
   BookmarkOutline as BookmarkOutlineIcon,
-  Bookmark as BookmarkIcon
+  Bookmark as BookmarkIcon,
+  ArrowBackOutline as ArrowBackOutlineIcon
 } from '@vicons/ionicons5'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const videoStore = useVideoStore()
+const backIcon = ArrowBackOutlineIcon || null
 
 const collectionId = computed(() => route.params.id as string)
 const currentEpisodeIndex = ref(0)
 const fallbackCollection = ref<VideoCollection | null>(null)
 const playerRef = ref<InstanceType<typeof VideoPlayer> | null>(null)
+const playerReady = ref(false)
 
 const collection = computed(() => {
   return videoStore.collections.find(c => c.id === collectionId.value) || fallbackCollection.value
@@ -209,6 +224,38 @@ const videoTrend = ref<Record<string, number>>({})
 
 const videoStatsEntries = computed(() => Object.entries(videoStats.value))
 const trendEntries = computed(() => Object.entries(videoTrend.value))
+const relatedDisplayItems = computed(() => {
+  return (relatedVideos.value || [])
+    .filter(video => video && video.id)
+    .map(video => ({
+      id: String(video.id ?? ''),
+      title: video.title || '未命名视频',
+      cover: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? ''),
+      playCount: video.playCount ?? 0
+    }))
+})
+const windowWidth = ref(window.innerWidth)
+const relatedColumns = computed(() => {
+  if (windowWidth.value >= 1200) return 5
+  if (windowWidth.value >= 900) return 4
+  if (windowWidth.value >= 640) return 3
+  return 2
+})
+const relatedGridItems = computed(() => {
+  return relatedDisplayItems.value.slice(0, relatedColumns.value * 2)
+})
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
+const handleBack = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push({ name: 'video' })
+  }
+}
 
 const getCurrentTime = () => {
   return playerRef.value?.getCurrentTime ? playerRef.value.getCurrentTime() : 0
@@ -262,11 +309,14 @@ const loadCollectionData = async (id: string) => {
 
 const applyPlayRecordEpisode = async () => {
   if (!collection.value || collection.value.videos.length === 0) return
-
-  const firstVideo = collection.value.videos[0]
-  const record = await videoStore.getPlayRecord(firstVideo.id)
+  const record = await videoStore.getPlayRecordByCollection(collection.value)
   if (record && typeof record.episodeIndex === 'number') {
     currentEpisodeIndex.value = record.episodeIndex
+  } else {
+    currentEpisodeIndex.value = 0
+  }
+  if (collection.value) {
+    videoStore.setCurrentVideo(collection.value, currentEpisodeIndex.value)
   }
 }
 
@@ -344,12 +394,19 @@ const loadRelatedVideos = async (videoId: string) => {
   }
 }
 
+const refreshCurrentVideoData = async () => {
+  if (!currentVideoId.value || !isNumericId(currentVideoId.value)) return
+  await loadVideoInfo(currentVideoId.value)
+  await loadStatistics(currentVideoId.value)
+}
+
 const toggleLike = async () => {
   if (!currentVideoId.value) return
   const next = !isLiked.value
   try {
     await likeApi.setLike(currentVideoId.value, next)
     isLiked.value = next
+    await refreshCurrentVideoData()
     message.success(next ? '已点赞' : '已取消点赞')
   } catch (error) {
     message.error(getErrorMessage(error))
@@ -366,6 +423,7 @@ const toggleCollect = async () => {
       await collectApi.cancelCollect(currentVideoId.value)
     }
     isCollected.value = next
+    await refreshCurrentVideoData()
     message.success(next ? '已收藏' : '已取消收藏')
   } catch (error) {
     message.error(getErrorMessage(error))
@@ -380,14 +438,24 @@ const goToRelatedVideo = (id?: number) => {
 onMounted(async () => {
   await loadCollectionData(collectionId.value)
   await applyPlayRecordEpisode()
+  playerReady.value = true
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 
 watch(collectionId, async (newId) => {
   currentEpisodeIndex.value = 0
+  playerReady.value = false
   await loadCollectionData(newId)
+  await applyPlayRecordEpisode()
+  playerReady.value = true
 })
 
 watch(collection, () => {
+  if (!playerReady.value) return
   applyPlayRecordEpisode()
 })
 
@@ -420,6 +488,15 @@ watch(currentVideoId, async (newVideoId) => {
     font-size: 24px;
     margin-bottom: 8px;
   }
+}
+
+.video-back-button {
+  font-size: 14px;
+  color: var(--n-text-color-2);
+}
+
+.video-info-actions {
+  margin-bottom: 8px;
 }
 
 .player-section {
@@ -455,12 +532,77 @@ watch(currentVideoId, async (newVideoId) => {
   opacity: 0.8;
 }
 
+.related-grid {
+  width: 100%;
+}
+
+.related-card {
+  cursor: pointer;
+}
+
 .related-cover {
-  width: 72px;
-  height: 72px;
-  border-radius: 8px;
-  object-fit: cover;
+  position: relative;
+  height: 124px;
+  border-radius: 10px;
+  overflow: hidden;
   background: #111;
+}
+
+.related-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.related-title {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: #fff;
+  font-size: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  max-width: calc(100% - 16px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.related-plays {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+@media (max-width: 1200px) {
+  .related-cover {
+    height: 110px;
+  }
+}
+
+@media (max-width: 900px) {
+  .related-cover {
+    height: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .related-cover {
+    height: 90px;
+  }
+
+  .related-title,
+  .related-plays {
+    font-size: 11px;
+    padding: 2px 5px;
+  }
 }
 
 @media (max-width: 900px) {

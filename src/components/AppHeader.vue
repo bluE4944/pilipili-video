@@ -72,7 +72,9 @@ watch(
   }
 )
 
-const menuOptions = [
+const isAdmin = computed(() => userStore.currentUser?.role === 'admin')
+
+const baseMenuOptions = [
   {
     label: '首页',
     key: 'home'
@@ -90,6 +92,25 @@ const menuOptions = [
     key: 'settings'
   }
 ]
+
+const adminMenuOptions = [
+  {
+    label: '用户管理',
+    key: 'adminUsers'
+  },
+  {
+    label: '视频管理',
+    key: 'adminVideos'
+  },
+  {
+    label: '合集管理',
+    key: 'adminCollections'
+  }
+]
+
+const menuOptions = computed(() => {
+  return isAdmin.value ? [...baseMenuOptions, ...adminMenuOptions] : baseMenuOptions
+})
 
 const userOptions = computed(() => {
   if (userStore.currentUser && !userStore.currentUser.id.startsWith('guest_')) {

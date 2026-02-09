@@ -19,6 +19,12 @@ export interface Danmaku {
   createdAt: number
 }
 
+const toNumericId = (value?: string | number) => {
+  if (value === undefined || value === null) return undefined
+  const text = String(value)
+  return /^\d+$/.test(text) ? text : undefined
+}
+
 const mapDanmaku = (item: BackendDanmaku): Danmaku => {
   return {
     id: String(item.id ?? ''),
@@ -48,7 +54,7 @@ export const danmakuApi = {
     type?: number
   }): Promise<Danmaku> {
     const result = await apiRequest.post<BackendDanmaku>('/api/video/danmaku', {
-      videoId: Number(payload.videoId),
+      videoId: toNumericId(payload.videoId),
       content: payload.content,
       time: payload.time,
       color: payload.color,

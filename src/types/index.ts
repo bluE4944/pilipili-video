@@ -141,6 +141,8 @@ export interface BackendVideo {
   updateTime?: string
 }
 
+export type BackendId = number | string
+
 export interface BackendVideoCollection {
   id?: number
   title?: string
@@ -189,27 +191,29 @@ export interface BackendPlayHistory {
 
 export interface BackendVideoPlayHistoryItem {
   history?: BackendPlayHistory
+  itemType?: 'collection' | 'video'
+  collection?: BackendVideoCollection
   video?: BackendVideo
 }
 
 export interface BackendComment {
-  id?: number
-  videoId?: number
-  userId?: number
+  id?: BackendId
+  videoId?: BackendId
+  userId?: BackendId
   userName?: string
   userAvatar?: string
   content?: string
   likeCount?: number
-  parentId?: number
+  parentId?: BackendId
   replyCount?: number
   createTime?: string
   updateTime?: string
 }
 
 export interface BackendDanmaku {
-  id?: number
-  videoId?: number
-  userId?: number
+  id?: BackendId
+  videoId?: BackendId
+  userId?: BackendId
   content?: string
   color?: string
   fontSize?: number

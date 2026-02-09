@@ -7,6 +7,12 @@ const toTimestamp = (value?: string) => {
   return Number.isNaN(parsed) ? Date.now() : parsed
 }
 
+const toNumericId = (value?: string | number) => {
+  if (value === undefined || value === null) return undefined
+  const text = String(value)
+  return /^\d+$/.test(text) ? text : undefined
+}
+
 const mapComment = (comment: BackendComment): Comment => {
   return {
     id: String(comment.id ?? ''),
@@ -36,17 +42,16 @@ export const commentApi = {
   async addComment(comment: {
     videoId: string
     content: string
-    parentId?: number
+    parentId?: number | string
     userId?: string
     username?: string
     userAvatar?: string
   }): Promise<Comment> {
-    const parsedUserId = comment.userId ? Number(comment.userId) : undefined
     const payload: BackendComment = {
-      videoId: Number(comment.videoId),
+      videoId: toNumericId(comment.videoId),
       content: comment.content,
-      parentId: comment.parentId ?? 0,
-      userId: Number.isNaN(parsedUserId as number) ? undefined : parsedUserId,
+      parentId: toNumericId(comment.parentId ?? 0),
+      userId: toNumericId(comment.userId),
       userName: comment.username,
       userAvatar: comment.userAvatar
     }
@@ -63,7 +68,7 @@ export const commentApi = {
     return this.addComment({
       videoId: reply.videoId,
       content: reply.content,
-      parentId: Number(commentId),
+      parentId: commentId,
       userId: reply.userId,
       username: reply.username
     })

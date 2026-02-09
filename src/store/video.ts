@@ -84,6 +84,26 @@ export const useVideoStore = defineStore('video', () => {
     return null
   }
 
+  const getPlayRecordByCollection = async (collection: VideoCollection): Promise<PlayRecord | null> => {
+    if (!collection || !collection.id || collection.videos.length === 0) return null
+    try {
+      const record = await playRecordApi.getPlayRecord(collection.id)
+      if (record && record.videoId) {
+        const index = collection.videos.findIndex(video => video.id === record.videoId)
+        const merged: PlayRecord = {
+          ...record,
+          collectionId: collection.id,
+          episodeIndex: index >= 0 ? index : 0
+        }
+        playRecords.value.set(record.videoId, merged)
+        return merged
+      }
+    } catch (error) {
+      console.error('Failed to get play record by collection:', error)
+    }
+    return null
+  }
+
   const loadRecentPlayList = async (size = 10) => {
     try {
       const items = await playRecordApi.getRecentPlayList(size)
@@ -195,6 +215,7 @@ export const useVideoStore = defineStore('video', () => {
     scanAllVideos,
     savePlayRecord,
     getPlayRecord,
+    getPlayRecordByCollection,
     setCurrentVideo,
     getNextVideo,
     uploadVideo,

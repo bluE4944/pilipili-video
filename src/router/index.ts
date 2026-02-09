@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
+import { useUserStore } from '@/store/user'
 
 import type { RouteRecordRaw } from 'vue-router'
 
@@ -78,6 +79,24 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '设置', requiresAuth: true }
 
   },
+  {
+    path: '/admin/users',
+    name: 'adminUsers',
+    component: () => import('@/views/AdminUsersView.vue'),
+    meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/videos',
+    name: 'adminVideos',
+    component: () => import('@/views/AdminVideosView.vue'),
+    meta: { title: '视频管理', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/collections',
+    name: 'adminCollections',
+    component: () => import('@/views/AdminCollectionsView.vue'),
+    meta: { title: '合集管理', requiresAuth: true, requiresAdmin: true }
+  },
 
   {
 
@@ -128,6 +147,21 @@ router.beforeEach((to, _from, next) => {
     if (!token) {
       message.warning('请先登录')
       next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
+  if (to.meta.requiresAdmin) {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      message.warning('请先登录')
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+    const userStore = useUserStore()
+    if (userStore.currentUser?.role !== 'admin') {
+      message.error('仅管理员可访问')
+      next({ name: 'home' })
       return
     }
   }

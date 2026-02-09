@@ -8,6 +8,7 @@
         :rows="3"
         :maxlength="500"
         show-count
+        @keydown="handleCommentKeydown"
       />
       <n-space justify="end">
         <n-button @click="handleSubmitComment" type="primary" :disabled="!commentContent.trim()">
@@ -54,6 +55,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const emit = defineEmits<{
+  submitted: []
+}>()
 
 const userStore = useUserStore()
 const message = useMessage()
@@ -94,11 +98,19 @@ const handleSubmitComment = async () => {
 
     comments.value.unshift(newComment)
     commentContent.value = ''
+    emit('submitted')
     message.success('评论发表成功')
   } catch (error) {
     console.error('Failed to submit comment:', error)
     message.error(getErrorMessage(error))
   }
+}
+
+const handleCommentKeydown = (event: KeyboardEvent) => {
+  if (event.key !== 'Enter') return
+  if (event.altKey) return
+  event.preventDefault()
+  handleSubmitComment()
 }
 
 const formatTime = (timestamp: number): string => {

@@ -8,26 +8,34 @@
           maxlength="100"
           show-count
           clearable
+          @keydown.enter.prevent="handleEnterSend"
         />
         <n-button type="primary" :disabled="!content.trim()" :loading="sending" @click="handleSend">
           发送
         </n-button>
       </n-space>
 
-      <n-list v-if="danmakus.length">
-        <n-list-item v-for="item in danmakus" :key="item.id">
-          <n-thing>
-            <template #header>
-              <n-space align="center">
-                <n-tag size="small" type="info">{{ formatTime(item.time || 0) }}</n-tag>
-                <n-text>{{ item.content }}</n-text>
-              </n-space>
-            </template>
-          </n-thing>
-        </n-list-item>
-      </n-list>
+      <div class="danmaku-list-toggle" @click="toggleList">
+        <n-text depth="3">弹幕列表（{{ danmakus.length }}）</n-text>
+        <n-text depth="3">{{ listExpanded ? '收起' : '展开' }}</n-text>
+      </div>
 
-      <n-empty v-else description="暂无弹幕" />
+      <div v-show="listExpanded">
+        <n-list v-if="danmakus.length">
+          <n-list-item v-for="item in danmakus" :key="item.id">
+            <n-thing>
+              <template #header>
+                <n-space align="center">
+                  <n-tag size="small" type="info">{{ formatTime(item.time || 0) }}</n-tag>
+                  <n-text>{{ item.content }}</n-text>
+                </n-space>
+              </template>
+            </n-thing>
+          </n-list-item>
+        </n-list>
+
+        <n-empty v-else description="暂无弹幕" />
+      </div>
     </n-space>
   </div>
 </template>
@@ -49,6 +57,7 @@ const message = useMessage()
 const content = ref('')
 const sending = ref(false)
 const danmakus = ref<Danmaku[]>([])
+const listExpanded = ref(false)
 
 const loadDanmakus = async () => {
   if (!props.videoId) return
@@ -80,10 +89,19 @@ const handleSend = async () => {
   }
 }
 
+const handleEnterSend = () => {
+  if (sending.value) return
+  handleSend()
+}
+
 const formatTime = (seconds: number): string => {
   const m = Math.floor(seconds / 60)
   const s = Math.floor(seconds % 60)
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+
+const toggleList = () => {
+  listExpanded.value = !listExpanded.value
 }
 
 watch(() => props.videoId, () => {
@@ -95,5 +113,14 @@ watch(() => props.videoId, () => {
 <style scoped lang="scss">
 .danmaku-panel {
   width: 100%;
+}
+
+.danmaku-list-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
 }
 </style>

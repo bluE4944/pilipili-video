@@ -5,15 +5,18 @@
         class="hero-carousel"
         autoplay
         :interval="5000"
-        :show-dots="hotVideos.length > 1"
+        :show-dots="hotDisplayItems.length > 1"
         dot-type="line"
         show-arrow
       >
-        <n-carousel-item v-for="item in hotVideos" :key="item.id">
-          <div class="hero-slide" :style="{ backgroundImage: `url(${resolveVideoCover(item)})` }">
+        <n-carousel-item v-for="item in hotDisplayItems" :key="item.id">
+          <div class="hero-slide" :style="{ backgroundImage: `url(${item.cover})` }">
             <div class="hero-mask"></div>
             <div class="hero-content">
               <div class="hero-text">
+                <div class="hero-badges">
+                  <span class="hero-type-badge">{{ item.kindLabel }}</span>
+                </div>
                 <h2>{{ item.title || '推荐视频' }}</h2>
                 <p>{{ item.description || '发现更多精彩内容' }}</p>
               </div>
@@ -58,6 +61,7 @@
         >
           <div class="hot-cover">
             <img :src="item.cover" alt="cover" />
+            <div class="hot-type-badge">{{ item.kindLabel }}</div>
             <div class="hot-title">{{ item.title || '未命名视频' }}</div>
             <div class="hot-plays">{{ item.totalEpisodes }} 集</div>
             <div class="play-badge" v-if="item.playCount !== undefined">
@@ -154,7 +158,7 @@ import { useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import { useVideoStore } from '@/store/video'
 import { videoSearchApi, videoApi } from '@/api/video'
-import type { BackendVideo } from '@/types'
+import type { BackendVideo, BackendVideoCollection, BackendVideoListItem } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { resolveApiUrl } from '@/utils/api'
 import { getFallbackCover } from '@/utils/fallbackCover'
@@ -169,8 +173,12 @@ const message = useMessage()
 const videoLibraryIcon = VideoLibraryIcon || null
 const searchIcon = SearchIcon || null
 
+const resolveEntityCover = (entity: BackendVideo | BackendVideoCollection) => {
+  return resolveApiUrl(entity.coverUrl) || getFallbackCover(entity.id ?? '')
+}
+
 const resolveVideoCover = (video: BackendVideo) => {
-  return resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')
+  return resolveEntityCover(video)
 }
 
 const hotColumns = computed(() => {
@@ -179,17 +187,46 @@ const hotColumns = computed(() => {
   return 4
 })
 
-const recentWatching = computed(() => {
-  return (videoStore.recentPlayList || [])
-    .filter(item => item.video && item.video.id)
-    .slice(0, 6)
-    .map(item => ({
-      id: String(item.video!.id ?? ''),
-      title: item.video!.title || '未命名视频',
-      cover: resolveApiUrl(item.video!.coverUrl) || getFallbackCover(item.video!.id ?? ''),
-      totalEpisodes: 1,
-      playCount: item.video!.playCount ?? 0
-    }))
+type RecentDisplayItem = {
+  id: string
+  title: string
+  cover: string
+  totalEpisodes: number
+  playCount?: number
+  kind: 'collection' | 'video'
+  kindLabel: string
+}
+
+const recentWatching = computed<RecentDisplayItem[]>(() => {
+  const items = (videoStore.recentPlayList || [])
+    .map((item) => {
+      const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
+      if (isCollection && item.collection) {
+        return {
+          id: String(item.collection.id ?? ''),
+          title: item.collection.title || '未命名合集',
+          cover: resolveEntityCover(item.collection),
+          totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
+          playCount: undefined,
+          kind: 'collection',
+          kindLabel: '合集'
+        }
+      }
+      if (item.video && item.video.id) {
+        return {
+          id: String(item.video.id ?? ''),
+          title: item.video.title || '未命名视频',
+          cover: resolveEntityCover(item.video),
+          totalEpisodes: 1,
+          playCount: item.video.playCount ?? 0,
+          kind: 'video',
+          kindLabel: '视频'
+        }
+      }
+      return null
+    })
+    .filter((item): item is RecentDisplayItem => Boolean(item))
+  return items.slice(0, 6)
 })
 
 const visibleRecentWatching = computed(() => {
@@ -204,7 +241,34 @@ const searchQuery = ref('')
 const searchType = ref<'keyword' | 'tag' | 'category'>('keyword')
 const searchResults = ref<BackendVideo[]>([])
 const searchLoading = ref(false)
-const hotVideos = ref<BackendVideo[]>([])
+type HotDisplayItem = {
+  id: string
+  title: string
+  description: string
+  cover: string
+  kind: 'collection' | 'video'
+  kindLabel: string
+}
+
+const hotVideos = ref<BackendVideoListItem[]>([])
+const hotDisplayItems = computed<HotDisplayItem[]>(() => {
+  const items = hotVideos.value
+    .map((item) => {
+      const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
+      const entity = isCollection ? item.collection : item.video
+      if (!entity || !entity.id) return null
+      return {
+        id: String(entity.id ?? ''),
+        title: entity.title || '推荐视频',
+        description: entity.description || '',
+        cover: resolveEntityCover(entity),
+        kind: isCollection ? 'collection' : 'video',
+        kindLabel: isCollection ? '合集' : '视频'
+      }
+    })
+    .filter((item): item is HotDisplayItem => Boolean(item))
+  return items
+})
 const windowWidth = ref(window.innerWidth)
 let searchTimer: number | null = null
 const pageNum = ref(1)
@@ -454,6 +518,20 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 
+.hero-badges {
+  margin-bottom: 8px;
+}
+
+.hero-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+
 .hero-text p {
   max-width: 520px;
   opacity: 0.85;
@@ -642,6 +720,17 @@ onUnmounted(() => {
   border-radius: 10px;
   overflow: hidden;
   background: #111;
+}
+
+.hot-type-badge {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
 }
 
 .hot-cover img {

@@ -35,6 +35,39 @@
 
     </div>
 
+    <teleport v-if="playerOverlayTarget && danmakuEnabled" :to="playerOverlayTarget">
+      <div class="danmaku-overlay" :class="{ 'is-paused': danmakuPaused }">
+        <div
+          v-for="item in activeDanmakus"
+          :key="item.key"
+          class="danmaku-item"
+          :style="{
+            top: `${item.top}px`,
+            color: item.color || '#fff',
+            fontSize: `${item.fontSize || 14}px`,
+            '--danmaku-duration': `${item.duration}s`
+          }"
+        >
+          {{ item.text }}
+        </div>
+      </div>
+    </teleport>
+    <div v-else-if="danmakuEnabled" class="danmaku-overlay" :class="{ 'is-paused': danmakuPaused }">
+      <div
+        v-for="item in activeDanmakus"
+        :key="item.key"
+        class="danmaku-item"
+        :style="{
+          top: `${item.top}px`,
+          color: item.color || '#fff',
+          fontSize: `${item.fontSize || 14}px`,
+          '--danmaku-duration': `${item.duration}s`
+        }"
+      >
+        {{ item.text }}
+      </div>
+    </div>
+
     <teleport v-if="playerOverlayTarget" :to="playerOverlayTarget">
       <transition name="key-hint">
         <div v-if="keyHint.visible" class="video-key-hint">
@@ -78,6 +111,7 @@ import { useMessage } from 'naive-ui'
 
 import { getVideoBlobUrl, getVideoFile, revokeVideoBlobUrl, registerVideoFile } from '@/utils/videoFileManager'
 import { getErrorMessage } from '@/utils/error'
+import { danmakuApi, type Danmaku } from '@/api/danmaku'
 
 
 
@@ -120,6 +154,174 @@ const player = ref<Player | null>(null)
 
 let resizeObserver: ResizeObserver | null = null
 let resizeRaf = 0
+let appliedPlayRecordKey: string | null = null
+let pendingPlayRecordKey: string | null = null
+let pendingPlayRecordAt = 0
+let pendingPlayRecordTimer: number | null = null
+let initSequence = 0
+let danmakuTrackIndex = 0
+const danmakuList = ref<Danmaku[]>([])
+const danmakuCursor = ref(0)
+const activeDanmakus = ref<Array<{
+  key: string
+  text: string
+  top: number
+  color?: string
+  fontSize?: number
+  duration: number
+}>>([])
+const danmakuPaused = ref(false)
+const danmakuEnabled = ref(true)
+const danmakuTrackCount = ref(4)
+const danmakuTimers = new Map<string, number>()
+
+const clearPendingPlayRecord = () => {
+  pendingPlayRecordKey = null
+  pendingPlayRecordAt = 0
+  if (pendingPlayRecordTimer) {
+    window.clearTimeout(pendingPlayRecordTimer)
+    pendingPlayRecordTimer = null
+  }
+}
+
+const updateDanmakuTracks = () => {
+  const height = playerContainerRef.value?.clientHeight || 0
+  const maxHeight = Math.max(0, Math.floor(height * 0.35))
+  const lineHeight = 24
+  const count = Math.max(2, Math.min(6, Math.floor(maxHeight / lineHeight)))
+  danmakuTrackCount.value = count || 2
+}
+
+const clearActiveDanmakus = () => {
+  activeDanmakus.value = []
+  danmakuTimers.forEach((timer) => window.clearTimeout(timer))
+  danmakuTimers.clear()
+  danmakuTrackIndex = 0
+}
+
+const loadDanmakuList = async () => {
+  if (!videoFile.value) {
+    danmakuList.value = []
+    danmakuCursor.value = 0
+    clearActiveDanmakus()
+    return
+  }
+  try {
+    const list = await danmakuApi.getDanmakus(videoFile.value.id)
+    danmakuList.value = (list || []).slice().sort((a, b) => (a.time || 0) - (b.time || 0))
+    danmakuCursor.value = 0
+    clearActiveDanmakus()
+  } catch (error) {
+    console.error('Failed to load danmaku list:', error)
+    danmakuList.value = []
+    danmakuCursor.value = 0
+    clearActiveDanmakus()
+  }
+}
+
+const spawnDanmaku = (item: Danmaku) => {
+  const text = item.content || ''
+  if (!text) return
+  const trackCount = danmakuTrackCount.value || 2
+  const trackIndex = danmakuTrackIndex % trackCount
+  danmakuTrackIndex += 1
+  const lineHeight = 24
+  const top = 8 + trackIndex * lineHeight
+  const duration = Math.min(12, Math.max(6, 8 + text.length * 0.15))
+  const key = `${item.id}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`
+  activeDanmakus.value.push({
+    key,
+    text,
+    top,
+    color: item.color,
+    fontSize: item.fontSize,
+    duration
+  })
+  const timer = window.setTimeout(() => {
+    activeDanmakus.value = activeDanmakus.value.filter((entry) => entry.key !== key)
+    danmakuTimers.delete(key)
+  }, duration * 1000)
+  danmakuTimers.set(key, timer)
+}
+
+const updateDanmakuByTime = (time: number) => {
+  if (!danmakuEnabled.value) return
+  if (!danmakuList.value.length) return
+  let cursor = danmakuCursor.value
+  while (cursor < danmakuList.value.length) {
+    const item = danmakuList.value[cursor]
+    const itemTime = item.time || 0
+    if (itemTime > time + 0.2) break
+    spawnDanmaku(item)
+    cursor += 1
+  }
+  danmakuCursor.value = cursor
+}
+
+const resetDanmakuCursor = (time: number) => {
+  if (!danmakuList.value.length) return
+  const target = Math.max(0, time - 0.5)
+  const list = danmakuList.value
+  let idx = 0
+  while (idx < list.length && (list[idx].time || 0) < target) {
+    idx += 1
+  }
+  danmakuCursor.value = idx
+  clearActiveDanmakus()
+}
+
+const applyPlayRecordForCurrentVideo = async (forceWait = false) => {
+  if (!player.value || !videoFile.value) return
+  const record = await videoStore.getPlayRecord(videoFile.value.id)
+  if (!record || record.currentTime <= 0) return
+  const recordKey = `${videoFile.value.id}-${Math.round(record.currentTime)}`
+  const now = Date.now()
+  if (recordKey === appliedPlayRecordKey) return
+  if (recordKey === pendingPlayRecordKey && now - pendingPlayRecordAt < 3000) return
+  pendingPlayRecordKey = recordKey
+  pendingPlayRecordAt = now
+  if (pendingPlayRecordTimer) {
+    window.clearTimeout(pendingPlayRecordTimer)
+  }
+  pendingPlayRecordTimer = window.setTimeout(() => {
+    if (pendingPlayRecordKey === recordKey) {
+      clearPendingPlayRecord()
+    }
+  }, 3500)
+  let hasApplied = false
+  const applySeek = () => {
+    if (hasApplied) return
+    hasApplied = true
+    if (!player.value || !isPlayerUsable()) return
+    const duration = player.value.duration() || 0
+    const target = duration > 0 ? Math.min(record.currentTime, Math.max(duration - 0.5, 0)) : record.currentTime
+    player.value.currentTime(target)
+    const episodeLabel = props.collection.videos.length > 1 ? `第${currentVideoIndex.value + 1}集` : ''
+    message.info(episodeLabel
+      ? `已定位到上次播放（${episodeLabel}）：${formatTime(target)}`
+      : `已定位到上次播放：${formatTime(target)}`)
+    appliedPlayRecordKey = recordKey
+    clearPendingPlayRecord()
+  }
+  if (forceWait) {
+    safeOne('loadedmetadata', applySeek)
+    safeOne('loadeddata', applySeek)
+    window.setTimeout(() => {
+      if (!hasApplied && player.value && isPlayerUsable()) {
+        const current = player.value.currentTime() || 0
+        if (current <= 0.1) {
+          applySeek()
+        }
+      }
+    }, 400)
+    return
+  }
+  if (player.value.readyState() >= 1) {
+    applySeek()
+  } else {
+    safeOne('loadedmetadata', applySeek)
+  }
+}
 
 const requestPlayerResize = () => {
   if (resizeRaf) return
@@ -134,6 +336,7 @@ const requestPlayerResize = () => {
       instance.trigger('resize')
       instance.trigger('playerresize')
     }
+    updateDanmakuTracks()
   })
 }
 
@@ -142,6 +345,22 @@ let destroyed = false
 let initTimer: number | null = null
 
 let mountTimer: number | null = null
+
+const scheduleInitPlayer = (delay = 100) => {
+  if (initTimer) {
+    window.clearTimeout(initTimer)
+    initTimer = null
+  }
+  if (mountTimer) {
+    window.clearTimeout(mountTimer)
+    mountTimer = null
+  }
+  initTimer = window.setTimeout(() => {
+    if (!destroyed) {
+      initPlayer()
+    }
+  }, delay)
+}
 
 const autoPlayNext = ref(false)
 
@@ -163,6 +382,8 @@ const playerOverlayTarget = ref<HTMLElement | null>(null)
 let manualOrientation: 'landscape' | 'portrait' | null = null
 let orientationButtonRegistered = false
 const ORIENTATION_BUTTON_NAME = 'OrientationButton'
+let danmakuButtonRegistered = false
+const DANMAKU_BUTTON_NAME = 'DanmakuToggleButton'
 
 let longPressTimer: number | null = null
 let longPressActive = false
@@ -295,6 +516,70 @@ const toggleOrientation = async () => {
   }
 }
 
+const updateDanmakuButtonAppearance = (button?: any) => {
+  if (!player.value) return
+  const controlBar = player.value.getChild('controlBar') as any
+  const instance = button || controlBar?.getChild(DANMAKU_BUTTON_NAME)
+  if (!instance) return
+  const root = instance.el() as HTMLElement | null
+  if (root) {
+    const placeholder = root.querySelector('.vjs-icon-placeholder') as HTMLElement | null
+    if (placeholder) {
+      placeholder.style.display = ''
+      placeholder.textContent = danmakuEnabled.value ? '💬' : '🚫'
+    }
+    const existing = root.querySelector('.danmaku-svg')
+    if (existing) {
+      existing.remove()
+    }
+  }
+  if (danmakuEnabled.value) {
+    instance.removeClass('vjs-danmaku-off')
+  } else {
+    instance.addClass('vjs-danmaku-off')
+  }
+}
+
+const toggleDanmaku = () => {
+  danmakuEnabled.value = !danmakuEnabled.value
+  updateDanmakuButtonAppearance()
+  showKeyHint(danmakuEnabled.value ? '弹幕已开启' : '弹幕已关闭', danmakuEnabled.value ? '💬' : '🚫')
+}
+
+const registerDanmakuButton = () => {
+  if (danmakuButtonRegistered) return
+  const Button = videojs.getComponent('Button') as any
+  class DanmakuToggleButton extends Button {
+    constructor(player: Player, options: any) {
+      super(player, options)
+      this.addClass('vjs-control')
+      this.addClass('vjs-button')
+      this.addClass('vjs-danmaku-button')
+      this.controlText('弹幕开关')
+      updateDanmakuButtonAppearance(this)
+    }
+    handleClick() {
+      toggleDanmaku()
+    }
+  }
+  videojs.registerComponent(DANMAKU_BUTTON_NAME, DanmakuToggleButton)
+  danmakuButtonRegistered = true
+}
+
+const ensureDanmakuButton = () => {
+  if (!player.value) return
+  registerDanmakuButton()
+  const controlBar = player.value.getChild('controlBar') as any
+  if (!controlBar || controlBar.getChild(DANMAKU_BUTTON_NAME)) return
+  const progressControl = controlBar.getChild('progressControl')
+  if (progressControl) {
+    const index = controlBar.children().indexOf(progressControl)
+    controlBar.addChild(DANMAKU_BUTTON_NAME, {}, index + 1)
+  } else {
+    controlBar.addChild(DANMAKU_BUTTON_NAME)
+  }
+}
+
 const registerOrientationButton = () => {
   if (orientationButtonRegistered) return
   const Button = videojs.getComponent('Button') as any
@@ -325,8 +610,15 @@ const ensureOrientationButton = () => {
   const controlBar = player.value.getChild('controlBar') as any
   if (!controlBar || controlBar.getChild(ORIENTATION_BUTTON_NAME)) return
   const progressControl = controlBar.getChild('progressControl')
+  const danmakuButton = controlBar.getChild(DANMAKU_BUTTON_NAME)
   if (progressControl) {
-    const index = controlBar.children().indexOf(progressControl)
+    let index = controlBar.children().indexOf(progressControl)
+    if (danmakuButton) {
+      const danIndex = controlBar.children().indexOf(danmakuButton)
+      if (danIndex > index) {
+        index = danIndex
+      }
+    }
     controlBar.addChild(ORIENTATION_BUTTON_NAME, {}, index + 1)
   } else {
     controlBar.addChild(ORIENTATION_BUTTON_NAME)
@@ -687,6 +979,9 @@ const safeOne = (eventName: string, handler: () => void) => {
 const initPlayer = async () => {
 
   if (destroyed || !playerRef.value || !videoFile.value) return
+  const initId = ++initSequence
+  appliedPlayRecordKey = null
+  clearPendingPlayRecord()
 
 
 
@@ -743,6 +1038,7 @@ const initPlayer = async () => {
     try {
 
       const playUrl = await videoStore.getVideoPlayUrl(videoFile.value.id)
+      if (destroyed || initId !== initSequence) return
 
       blobUrl = playUrl
 
@@ -773,6 +1069,7 @@ const initPlayer = async () => {
 
 
   await nextTick()
+  if (destroyed || initId !== initSequence) return
 
   if (!playerRef.value || !document.body.contains(playerRef.value)) {
 
@@ -834,9 +1131,12 @@ const initPlayer = async () => {
           })
         }
 
+        if (destroyed || initId !== initSequence) return
         player.value.src(source)
 
         player.value.load()
+        if (destroyed || initId !== initSequence) return
+        applyPlayRecordForCurrentVideo(true)
 
         return
 
@@ -868,7 +1168,7 @@ const initPlayer = async () => {
 
     console.log('Creating video player with URL:', blobUrl.substring(0, 50) + '...')
 
-
+    if (destroyed || initId !== initSequence) return
     player.value = videojs(playerRef.value, {
 
       controls: true,
@@ -907,7 +1207,7 @@ const initPlayer = async () => {
 
     player.value.ready(async () => {
 
-      if (destroyed || !player.value || !videoFile.value) return
+      if (destroyed || !player.value || !videoFile.value || initId !== initSequence) return
 
       const instance = player.value as any
 
@@ -926,16 +1226,7 @@ const initPlayer = async () => {
 
 
 
-      const record = await videoStore.getPlayRecord(videoFile.value.id)
-
-      if (record && record.currentTime > 0) {
-        safeOne('loadedmetadata', () => {
-          if (player.value && isPlayerUsable() && player.value.readyState() >= 1) {
-            player.value.currentTime(record.currentTime)
-            message.info(`已定位到上次播放：${formatTime(record.currentTime)}`)
-          }
-        })
-      }
+      await applyPlayRecordForCurrentVideo(true)
 
 
 
@@ -984,6 +1275,7 @@ const setupPlayerEvents = () => {
     const playerError = player.value?.error()
 
     console.error('播放器错误:', playerError)
+    clearPendingPlayRecord()
     if (playerError) {
 
       const errorMsg = playerError.message || playerError.code?.message || '未知错误'
@@ -1010,6 +1302,8 @@ const setupPlayerEvents = () => {
   // 监听加载开始
   player.value.on('loadstart', () => {
     console.log('Video load started')
+    clearPendingPlayRecord()
+    danmakuPaused.value = false
   })
 
   // 监听元数据加载完成
@@ -1020,6 +1314,7 @@ const setupPlayerEvents = () => {
     if (player.value?.isFullscreen()) {
       applyAutoOrientation()
     }
+    updateDanmakuTracks()
   })
   
 
@@ -1038,21 +1333,31 @@ const setupPlayerEvents = () => {
     requestPlayerResize()
   })
 
+  player.value.on('play', () => {
+    danmakuPaused.value = false
+  })
+
+  player.value.on('pause', () => {
+    danmakuPaused.value = true
+  })
+
+  player.value.on('seeked', () => {
+    const current = player.value?.currentTime() || 0
+    resetDanmakuCursor(current)
+  })
+
 
   // 监听播放进度，保存记录
   let saveTimer: number | null = null
   player.value.on('timeupdate', () => {
+    const current = player.value?.currentTime() || 0
+    updateDanmakuByTime(current)
 
     if (saveTimer) return
 
-    
-
     saveTimer = window.setTimeout(() => {
-
       savePlayRecord()
-
       saveTimer = null
-
     }, 5000) // 5 秒保存一次
   })
 
@@ -1089,6 +1394,8 @@ const setupPlayerEvents = () => {
     updateOrientationButtonVisibility()
   })
 
+  ensureDanmakuButton()
+  updateDanmakuButtonAppearance()
   ensureOrientationButton()
   updateOrientationButtonVisibility()
 
@@ -1152,11 +1459,8 @@ const switchToEpisode = (index: number) => {
 
   emit('episode-change', index)
 
-
-
   // 更新播放器源（不重新创建播放器）
-
-  initPlayer()
+  scheduleInitPlayer(0)
 
 }
 
@@ -1209,28 +1513,26 @@ watch(videoFile, async (newVideo, oldVideo) => {
   if (newVideo && (!oldVideo || newVideo.id !== oldVideo.id)) {
 
     await nextTick()
-
     // 延迟一点确保DOM更新完成
-
-    if (initTimer) {
-
-      clearTimeout(initTimer)
-
-    }
-
-    initTimer = window.setTimeout(() => {
-
-      if (!destroyed) {
-
-        initPlayer()
-
-      }
-
-    }, 100)
+    scheduleInitPlayer(100)
 
   }
 
 }, { immediate: false })
+
+watch(videoFile, () => {
+  loadDanmakuList()
+}, { immediate: true })
+
+watch(danmakuEnabled, (enabled) => {
+  updateDanmakuButtonAppearance()
+  if (!enabled) {
+    clearActiveDanmakus()
+  } else {
+    const current = player.value?.currentTime?.() || 0
+    resetDanmakuCursor(current)
+  }
+})
 
 
 
@@ -1262,15 +1564,7 @@ onMounted(async () => {
 
   }
 
-  mountTimer = window.setTimeout(() => {
-
-    if (!destroyed && videoFile.value && playerRef.value) {
-
-      initPlayer()
-
-    }
-
-  }, 200)
+  scheduleInitPlayer(200)
 
   window.addEventListener('keydown', handleKeydown)
   if (playerContainerRef.value) {
@@ -1316,6 +1610,8 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(resizeRaf)
     resizeRaf = 0
   }
+  clearActiveDanmakus()
+  clearPendingPlayRecord()
   window.removeEventListener('keydown', handleKeydown)
 
   if (initTimer) {
@@ -1450,6 +1746,36 @@ onUnmounted(() => {
   background: linear-gradient(90deg, #00a1d6 0%, #4fc3f7 100%);
 }
 
+.danmaku-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.danmaku-item {
+  position: absolute;
+  right: -10%;
+  white-space: nowrap;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  animation: danmaku-move var(--danmaku-duration, 8s) linear;
+  padding: 2px 4px;
+}
+
+.danmaku-overlay.is-paused .danmaku-item {
+  animation-play-state: paused;
+}
+
+@keyframes danmaku-move {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100vw - 100%));
+  }
+}
+
 .key-hint-enter-active,
 .key-hint-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -1507,6 +1833,20 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+::deep(.video-js .vjs-danmaku-button) {
+  width: 40px;
+  height: 32px;
+}
+
+::deep(.video-js .vjs-danmaku-button .vjs-icon-placeholder) {
+  font-size: 18px;
+  line-height: 1;
+}
+
+::deep(.video-js .vjs-danmaku-button.vjs-danmaku-off .vjs-icon-placeholder) {
+  opacity: 0.5;
 }
 
 ::deep(.video-js .vjs-big-play-button) {

@@ -324,8 +324,8 @@ export const videoSearchApi = {
     })
   },
 
-  getHotVideos(): Promise<BackendVideo[]> {
-    return apiRequest.get<BackendVideo[]>('/api/video/search/hot')
+  getHotVideos(): Promise<BackendVideoListItem[]> {
+    return apiRequest.get<BackendVideoListItem[]>('/api/video/search/hot')
   }
 }
 

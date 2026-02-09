@@ -179,6 +179,7 @@
                           :src="resolveApiUrl(collection.cover) || getFallbackCover(collection.id ?? '')"
                           alt="cover"
                         />
+                        <div class="recent-type-badge">{{ collection.kindLabel }}</div>
                       </div>
                     </template>
                     <n-ellipsis :tooltip="false">
@@ -209,7 +210,7 @@ import { useVideoStore } from '@/store/video'
 import { videoStatisticsApi } from '@/api/video'
 import { resolveApiUrl } from '@/utils/api'
 import { getFallbackCover } from '@/utils/fallbackCover'
-import type { BackendVideo } from '@/types'
+import type { BackendVideo, BackendVideoCollection } from '@/types'
 import {
   VideoLibraryOutline as VideoLibraryIcon,
   PlayOutline as PlayIcon,
@@ -280,16 +281,44 @@ const totalVideos = computed(() => {
   return videoStore.collections.reduce((sum, col) => sum + col.totalEpisodes, 0)
 })
 
-const recentCollections = computed(() => {
-  return (videoStore.recentPlayList || [])
-    .filter(item => item.video && item.video.id)
-    .slice(0, 5)
-    .map(item => ({
-      id: String(item.video!.id ?? ''),
-      title: item.video!.title || '未命名视频',
-      cover: resolveApiUrl(item.video!.coverUrl) || getFallbackCover(item.video!.id ?? ''),
-      totalEpisodes: 1
-    }))
+type RecentCollectionDisplay = {
+  id: string
+  title: string
+  cover: string
+  totalEpisodes: number
+  kindLabel: string
+}
+
+const resolveRecentCover = (entity: BackendVideo | BackendVideoCollection) => {
+  return resolveApiUrl(entity.coverUrl) || getFallbackCover(entity.id ?? '')
+}
+
+const recentCollections = computed<RecentCollectionDisplay[]>(() => {
+  const items = (videoStore.recentPlayList || [])
+    .map((item) => {
+      const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
+      if (isCollection && item.collection) {
+        return {
+          id: String(item.collection.id ?? ''),
+          title: item.collection.title || '未命名合集',
+          cover: resolveRecentCover(item.collection),
+          totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
+          kindLabel: '合集'
+        }
+      }
+      if (item.video && item.video.id) {
+        return {
+          id: String(item.video.id ?? ''),
+          title: item.video.title || '未命名视频',
+          cover: resolveRecentCover(item.video),
+          totalEpisodes: 1,
+          kindLabel: '视频'
+        }
+      }
+      return null
+    })
+    .filter((item): item is RecentCollectionDisplay => Boolean(item))
+  return items.slice(0, 5)
 })
 
 const behaviorLabelMap: Record<string, string> = {
@@ -476,6 +505,7 @@ onUnmounted(() => {
 }
 
 .collection-cover {
+  position: relative;
   height: 120px;
   display: flex;
   align-items: center;
@@ -491,6 +521,17 @@ onUnmounted(() => {
   object-fit: cover;
   border-radius: 6px;
   background: #111;
+}
+
+.recent-type-badge {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
 }
 
 .hot-cover {
