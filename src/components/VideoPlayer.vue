@@ -106,6 +106,7 @@ import type Player from 'video.js/dist/types/player'
 import type { VideoCollection, VideoFile, PlayRecord } from '@/types'
 
 import { useVideoStore } from '@/store/video'
+import { playRecordApi } from '@/api/video'
 
 import { useMessage } from 'naive-ui'
 
@@ -136,6 +137,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
 
   'episode-change': [index: number]
+  'play-counted': [videoId: string, playCount?: number]
 
 }>()
 
@@ -158,6 +160,8 @@ let appliedPlayRecordKey: string | null = null
 let pendingPlayRecordKey: string | null = null
 let pendingPlayRecordAt = 0
 let pendingPlayRecordTimer: number | null = null
+let playCountReportedVideoId: string | null = null
+let playCountReportingVideoId: string | null = null
 let initSequence = 0
 let danmakuTrackIndex = 0
 const danmakuList = ref<Danmaku[]>([])
@@ -1335,6 +1339,7 @@ const setupPlayerEvents = () => {
 
   player.value.on('play', () => {
     danmakuPaused.value = false
+    reportPlayCountOnce()
   })
 
   player.value.on('pause', () => {
@@ -1403,6 +1408,25 @@ const setupPlayerEvents = () => {
 
 
 
+
+
+// 上报播放量（每个视频仅一次）
+const reportPlayCountOnce = async () => {
+  if (!videoFile.value) return
+  const videoId = String(videoFile.value.id || '')
+  if (!videoId) return
+  if (playCountReportedVideoId === videoId || playCountReportingVideoId === videoId) return
+  playCountReportingVideoId = videoId
+  try {
+    const nextCount = await playRecordApi.incrementPlayCount(videoId)
+    playCountReportedVideoId = videoId
+    playCountReportingVideoId = null
+    emit('play-counted', videoId, nextCount)
+  } catch (error) {
+    console.warn('Failed to increment play count:', error)
+    playCountReportingVideoId = null
+  }
+}
 
 
 // 保存播放记录
@@ -1511,6 +1535,8 @@ watch(videoFile, async (newVideo, oldVideo) => {
   // 只有在视频文件真正改变时才重新初始化
 
   if (newVideo && (!oldVideo || newVideo.id !== oldVideo.id)) {
+    playCountReportedVideoId = null
+    playCountReportingVideoId = null
 
     await nextTick()
     // 延迟一点确保DOM更新完成

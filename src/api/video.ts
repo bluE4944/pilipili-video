@@ -59,6 +59,9 @@ const mapCollectionEntityToCollection = (
     cover: resolveApiUrl(collection.coverUrl) || getFallbackCover(collection.id ?? ''),
     videos: episodes ? episodes.map(mapEpisodeToVideoFile) : [],
     totalEpisodes: Number(collection.videoCount ?? (episodes ? episodes.length : 0)),
+    playCount: Number(collection.playCount ?? 0),
+    likeCount: Number(collection.likeCount ?? 0),
+    collectCount: Number(collection.collectCount ?? 0),
     createdAt: toTimestamp(collection.createTime),
     updatedAt: toTimestamp(collection.updateTime)
   }
@@ -76,6 +79,9 @@ const mapVideoEntityToCollection = (video: BackendVideo): VideoCollection => {
     cover: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? ''),
     videos: [mapVideoEntityToVideoFile(video, video.title || '')],
     totalEpisodes: 1,
+    playCount: Number(video.playCount ?? 0),
+    likeCount: Number(video.likeCount ?? 0),
+    collectCount: Number(video.collectCount ?? 0),
     createdAt: toTimestamp(video.createTime),
     updatedAt: toTimestamp(video.updateTime)
   }
@@ -274,6 +280,13 @@ export const videoApi = {
 }
 
 export const playRecordApi = {
+  incrementPlayCount(videoId: string): Promise<number> {
+    return apiRequest.post<any>(`/api/video/play/count/${videoId}`).then((value) => {
+      const num = Number(value)
+      return Number.isFinite(num) ? num : 0
+    })
+  },
+
   savePlayRecord(record: PlayRecord): Promise<void> {
     return apiRequest.post<void>('/api/video/play/progress', null, {
       params: {

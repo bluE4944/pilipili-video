@@ -28,6 +28,7 @@
             :collection="collection"
             :initial-episode="currentEpisodeIndex"
             @episode-change="handleEpisodeChange"
+            @play-counted="handlePlayCounted"
           />
         </div>
 
@@ -153,7 +154,12 @@
                 <div class="related-cover">
                   <img :src="video.cover" alt="cover" />
                   <div class="related-title">{{ video.title || '未命名视频' }}</div>
-                  <div class="related-plays">播放 {{ video.playCount || 0 }}</div>
+                  <div class="related-plays">
+                    <n-icon v-if="playIcon" class="play-icon">
+                      <component :is="playIcon" />
+                    </n-icon>
+                    <span>{{ video.playCount || 0 }}</span>
+                  </div>
                 </div>
               </div>
             </n-gi>
@@ -191,6 +197,7 @@ import {
   Heart as HeartIcon,
   BookmarkOutline as BookmarkOutlineIcon,
   Bookmark as BookmarkIcon,
+  PlayOutline as PlayIcon,
   ArrowBackOutline as ArrowBackOutlineIcon
 } from '@vicons/ionicons5'
 
@@ -199,6 +206,7 @@ const router = useRouter()
 const message = useMessage()
 const videoStore = useVideoStore()
 const backIcon = ArrowBackOutlineIcon || null
+const playIcon = PlayIcon || null
 
 const collectionId = computed(() => route.params.id as string)
 const currentEpisodeIndex = ref(0)
@@ -329,6 +337,29 @@ const switchEpisode = (index: number) => {
 
 const handleEpisodeChange = (index: number) => {
   currentEpisodeIndex.value = index
+}
+
+const handlePlayCounted = (videoId: string, playCount?: number) => {
+  if (!currentVideoInfo.value) return
+  const currentId = String(currentVideoInfo.value.id ?? '')
+  if (!currentId || currentId !== videoId) return
+  const normalized = typeof playCount === 'number'
+    ? playCount
+    : Number(playCount)
+  const base = Number(currentVideoInfo.value.playCount ?? 0)
+  const next = Number.isFinite(normalized)
+    ? normalized
+    : (Number.isFinite(base) ? base : 0) + 1
+  currentVideoInfo.value = {
+    ...currentVideoInfo.value,
+    playCount: next
+  }
+  if (videoStats.value && typeof videoStats.value.playCount === 'number') {
+    videoStats.value = {
+      ...videoStats.value,
+      playCount: next
+    }
+  }
 }
 
 const loadVideoInfo = async (videoId: string) => {
@@ -579,6 +610,14 @@ watch(currentVideoId, async (newVideoId) => {
   background: rgba(0, 0, 0, 0.45);
   padding: 2px 6px;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.play-icon {
+  font-size: 12px;
+  line-height: 1;
 }
 
 @media (max-width: 1200px) {

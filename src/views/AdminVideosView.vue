@@ -45,6 +45,7 @@
           :row-key="rowKey"
           :checked-row-keys="selectedRowKeys"
           :pagination="false"
+          :scroll-x="tableScrollX"
           @update:checked-row-keys="handleSelectionChange"
         />
 
@@ -90,7 +91,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NButton, NTag, useMessage } from 'naive-ui'
+import { NButton, NPopover, NTag, useMessage } from 'naive-ui'
 import { adminApi, type AdminBatchVideoUpdatePayload } from '@/api/admin'
 import type { BackendVideo } from '@/types'
 import { getErrorMessage } from '@/utils/error'
@@ -140,6 +141,8 @@ const selectedIds = computed(() => {
     .filter((value) => !Number.isNaN(value))
 })
 
+const tableScrollX = 1400
+
 const formatTime = (value?: string) => {
   if (!value) return '-'
   const parsed = Date.parse(value)
@@ -159,24 +162,53 @@ const statusTagType = (status?: number) => {
   return 'info'
 }
 
+const renderCoverPreview = (url: string, onClick: () => void, disabled: boolean) => {
+  return h(
+    NPopover,
+    { trigger: 'hover', placement: 'right', showArrow: false },
+    {
+      trigger: () =>
+        h('img', {
+          class: 'cover-img',
+          src: url,
+          style: {
+            width: '56px',
+            height: '36px',
+            objectFit: 'cover',
+            borderRadius: '3px',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            display: 'block'
+          },
+          onClick: disabled ? undefined : onClick
+        }),
+      default: () =>
+        h('img', {
+          class: 'cover-preview',
+          src: url,
+          style: {
+            width: '260px',
+            height: '160px',
+            objectFit: 'cover',
+            borderRadius: '8px',
+            display: 'block',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.18)'
+          }
+        })
+    }
+  )
+}
+
 const columns = computed<DataTableColumns<BackendVideo>>(() => [
   { type: 'selection' },
   { title: 'ID', key: 'id', width: 140, ellipsis: { tooltip: true } },
   {
     title: '封面',
     key: 'cover',
-    width: 140,
+    width: 110,
     render: (row) =>
       h('div', { class: 'cover-cell' }, [
-        h('img', {
-          class: 'cover-img',
-          src: resolveCoverUrl(row)
-        }),
-        h(
-          NButton,
-          { size: 'small', quaternary: true, onClick: () => handleCoverUpload(row) },
-          { default: () => '更换' }
-        )
+        renderCoverPreview(resolveCoverUrl(row), () => handleCoverUpload(row), isCoverUploading(row.id))
       ])
   },
   { title: '标题', key: 'title', ellipsis: { tooltip: true }, render: (row) => row.title || '-' },
@@ -192,6 +224,7 @@ const columns = computed<DataTableColumns<BackendVideo>>(() => [
   {
     title: '操作',
     key: 'actions',
+    width: 150,
     render: (row) =>
       h('div', { class: 'action-group' }, [
         h(
@@ -341,6 +374,19 @@ const resolveCoverUrl = (video: BackendVideo) => {
   return getFallbackCover(video.id ?? '')
 }
 
+const appendCoverTimestamp = (url?: string) => {
+  if (!url) return url
+  const mark = url.includes('?') ? '&' : '?'
+  return `${url}${mark}t=${Date.now()}`
+}
+
+const uploadingCoverIds = ref<Set<string>>(new Set())
+
+const isCoverUploading = (id?: number | string) => {
+  if (!id && id !== 0) return false
+  return uploadingCoverIds.value.has(String(id))
+}
+
 const selectImageFile = () => {
   return new Promise<File | null>((resolve) => {
     const input = document.createElement('input')
@@ -354,21 +400,29 @@ const selectImageFile = () => {
 }
 
 const handleCoverUpload = async (video: BackendVideo) => {
-  if (!video.id) {
+  if (!video.id && video.id !== 0) {
     message.warning('视频ID无效')
     return
   }
+  const key = String(video.id)
+  if (uploadingCoverIds.value.has(key)) return
   const file = await selectImageFile()
   if (!file) return
-  message.loading('正在上传封面...', { key: 'uploadCover', duration: 0 })
+  uploadingCoverIds.value.add(key)
+  const messageKey = `upload-cover-${key}`
+  const loadingMessage = message.loading('正在上传封面...', { key: messageKey, duration: 0 })
   try {
     const updated = await adminApi.uploadVideoCover(video.id, file)
     if (updated?.coverUrl) {
-      video.coverUrl = updated.coverUrl
+      video.coverUrl = appendCoverTimestamp(updated.coverUrl)
     }
-    message.success('封面已更新', { key: 'uploadCover' })
+    await loadVideos()
+    message.success('封面已更新', { key: messageKey })
   } catch (error) {
-    message.error(getErrorMessage(error), { key: 'uploadCover' })
+    message.error(getErrorMessage(error), { key: messageKey })
+  } finally {
+    loadingMessage?.destroy()
+    uploadingCoverIds.value.delete(key)
   }
 }
 
@@ -391,14 +445,25 @@ onMounted(() => {
 .cover-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
 }
 
 .cover-img {
-  width: 56px;
-  height: 32px;
+  width: 32px;
+  height: 20px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.cover-preview {
+  width: 260px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
 }
 </style>

@@ -80,22 +80,34 @@ const routes: RouteRecordRaw[] = [
 
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/UserProfile.vue'),
+    meta: { title: '个人信息', requiresAuth: true }
+  },
+  {
     path: '/admin/users',
     name: 'adminUsers',
     component: () => import('@/views/AdminUsersView.vue'),
-    meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true }
+    meta: { title: '用户管理', requiresAuth: true, allowedRoles: ['admin', 'manage'] }
   },
   {
     path: '/admin/videos',
     name: 'adminVideos',
     component: () => import('@/views/AdminVideosView.vue'),
-    meta: { title: '视频管理', requiresAuth: true, requiresAdmin: true }
+    meta: { title: '视频管理', requiresAuth: true, allowedRoles: ['admin', 'manage'] }
   },
   {
     path: '/admin/collections',
     name: 'adminCollections',
     component: () => import('@/views/AdminCollectionsView.vue'),
-    meta: { title: '合集管理', requiresAuth: true, requiresAdmin: true }
+    meta: { title: '合集管理', requiresAuth: true, allowedRoles: ['admin', 'manage'] }
+  },
+  {
+    path: '/admin/dict',
+    name: 'adminDict',
+    component: () => import('@/views/AdminDictView.vue'),
+    meta: { title: '字典管理', requiresAuth: true, requiresAdmin: true }
   },
 
   {
@@ -161,6 +173,22 @@ router.beforeEach((to, _from, next) => {
     const userStore = useUserStore()
     if (userStore.currentUser?.role !== 'admin') {
       message.error('仅管理员可访问')
+      next({ name: 'home' })
+      return
+    }
+  }
+
+  const allowedRoles = to.meta.allowedRoles as string[] | undefined
+  if (allowedRoles && allowedRoles.length) {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      message.warning('请先登录')
+      next({ name: 'login', query: { redirect: to.fullPath } })
+      return
+    }
+    const userStore = useUserStore()
+    if (!userStore.currentUser?.role || !allowedRoles.includes(userStore.currentUser.role)) {
+      message.error('无权限访问')
       next({ name: 'home' })
       return
     }

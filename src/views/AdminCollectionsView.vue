@@ -23,6 +23,7 @@
             <n-button @click="handleReset">重置</n-button>
           </n-space>
           <n-space align="center">
+            <n-button type="primary" @click="openCreateDialog">新建合集</n-button>
             <n-button type="error" :disabled="!selectedIds.length" @click="handleBatchDelete">
               批量删除
             </n-button>
@@ -51,6 +52,7 @@
           :row-key="rowKey"
           :checked-row-keys="selectedRowKeys"
           :pagination="false"
+          :scroll-x="tableScrollX"
           @update:checked-row-keys="handleSelectionChange"
         />
 
@@ -85,6 +87,39 @@
       </template>
     </n-modal>
 
+    <n-modal v-model:show="showCreateDialog" preset="dialog" title="新建合集">
+      <n-form :model="createForm">
+        <n-form-item label="标题">
+          <n-input v-model:value="createForm.title" placeholder="请输入合集标题" />
+        </n-form-item>
+        <n-form-item label="描述">
+          <n-input v-model:value="createForm.description" type="textarea" placeholder="合集描述(可选)" />
+        </n-form-item>
+        <n-form-item label="类型">
+          <n-select v-model:value="createForm.collectionType" :options="collectionTypeOptions" />
+        </n-form-item>
+        <n-form-item label="启用">
+          <n-select v-model:value="createForm.enabled" :options="enabledOptions" />
+        </n-form-item>
+        <n-form-item label="源路径">
+          <n-input v-model:value="createForm.sourceFolderPath" placeholder="源文件夹路径(可选)" />
+        </n-form-item>
+        <n-form-item label="封面">
+          <n-space align="center">
+            <n-button size="small" @click="handleSelectCreateCover">选择封面</n-button>
+            <n-button v-if="createCoverFile" size="small" @click="clearCreateCover">清除</n-button>
+            <img v-if="createCoverPreview" class="cover-preview-small" :src="createCoverPreview" alt="封面预览" />
+          </n-space>
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <n-space>
+          <n-button @click="showCreateDialog = false">取消</n-button>
+          <n-button type="primary" :loading="creatingCollection" @click="handleCreateCollection">创建</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
     <n-modal v-model:show="showEpisodesDialog" preset="card" title="合集分集管理" style="width: 1300px">
       <n-space vertical :size="12">
         <n-space justify="space-between" align="center" :wrap="true">
@@ -104,6 +139,7 @@
           :loading="episodesLoading"
           :row-key="(row) => row.id ?? row.videoId ?? ''"
           :checked-row-keys="episodeSelectedRowKeys"
+          :scroll-x="episodeTableScrollX"
           @update:checked-row-keys="handleEpisodeSelectionChange"
         />
         <n-space justify="end">
@@ -124,8 +160,8 @@
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
-import { NButton, NInput, NInputNumber, NTag, useMessage } from 'naive-ui'
-import { adminApi, type AdminBatchCollectionUpdatePayload, type AdminEpisodeUpdateItem } from '@/api/admin'
+import { NButton, NInput, NInputNumber, NPopover, NTag, useMessage } from 'naive-ui'
+import { adminApi, type AdminBatchCollectionUpdatePayload, type AdminCollectionPayload, type AdminEpisodeUpdateItem } from '@/api/admin'
 import type { BackendVideoCollection, BackendVideoEpisode } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { useRouter } from 'vue-router'
@@ -177,6 +213,18 @@ const episodeSelectedRowKeys = ref<Array<string | number>>([])
 const episodePage = ref(1)
 const episodePageSize = ref(10)
 
+const showCreateDialog = ref(false)
+const createForm = reactive<AdminCollectionPayload>({
+  title: '',
+  description: '',
+  sourceFolderPath: '',
+  collectionType: 2,
+  enabled: 1
+})
+const createCoverFile = ref<File | null>(null)
+const createCoverPreview = ref('')
+const creatingCollection = ref(false)
+
 const rowKey = (row: BackendVideoCollection) => row.id ?? ''
 
 const selectedIds = computed(() => {
@@ -184,6 +232,9 @@ const selectedIds = computed(() => {
     .map((value) => Number(value))
     .filter((value) => !Number.isNaN(value))
 })
+
+const tableScrollX = 1200
+const episodeTableScrollX = 1300
 
 const formatTime = (value?: string) => {
   if (!value) return '-'
@@ -194,24 +245,53 @@ const formatTime = (value?: string) => {
 
 const enabledLabel = (value?: number) => (value === 1 ? '启用' : value === 0 ? '禁用' : '-')
 
+const renderCoverPreview = (url: string, onClick: () => void, disabled: boolean) => {
+  return h(
+    NPopover,
+    { trigger: 'hover', placement: 'right', showArrow: false },
+    {
+      trigger: () =>
+        h('img', {
+          class: 'cover-img',
+          src: url,
+          style: {
+            width: '56px',
+            height: '36px',
+            objectFit: 'cover',
+            borderRadius: '3px',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            display: 'block'
+          },
+          onClick: disabled ? undefined : onClick
+        }),
+      default: () =>
+        h('img', {
+          class: 'cover-preview',
+          src: url,
+          style: {
+            width: '260px',
+            height: '160px',
+            objectFit: 'cover',
+            borderRadius: '8px',
+            display: 'block',
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.18)'
+          }
+        })
+    }
+  )
+}
+
 const columns = computed<DataTableColumns<BackendVideoCollection>>(() => [
   { type: 'selection' },
   { title: 'ID', key: 'id', width: 140, ellipsis: { tooltip: true } },
   {
     title: '封面',
     key: 'cover',
-    width: 140,
+    width: 110,
     render: (row) =>
       h('div', { class: 'cover-cell' }, [
-        h('img', {
-          class: 'cover-img',
-          src: resolveCollectionCover(row)
-        }),
-        h(
-          NButton,
-          { size: 'small', quaternary: true, onClick: () => handleCollectionCoverUpload(row) },
-          { default: () => '更换' }
-        )
+        renderCoverPreview(resolveCollectionCover(row), () => handleCollectionCoverUpload(row), isCoverUploading(row.id))
       ])
   },
   { title: '标题', key: 'title', ellipsis: { tooltip: true }, render: (row) => row.title || '-' },
@@ -226,7 +306,7 @@ const columns = computed<DataTableColumns<BackendVideoCollection>>(() => [
     render: (row) => (row.collectionType === 2 ? '手动' : '自动')
   },
   { title: '视频数', key: 'videoCount', render: (row) => row.videoCount ?? 0 },
-  { title: '创建时间', key: 'createTime', render: (row) => formatTime(row.createTime) },
+  { title: '创建时间', key: 'createTime', render: (row) => formatTime(row.createTime), width: 150 },
   {
     title: '操作',
     key: 'actions',
@@ -424,10 +504,83 @@ const handleBatchEnabled = async () => {
   }
 }
 
+const openCreateDialog = () => {
+  Object.assign(createForm, {
+    title: '',
+    description: '',
+    sourceFolderPath: '',
+    collectionType: 2,
+    enabled: 1
+  })
+  clearCreateCover()
+  showCreateDialog.value = true
+}
+
+const handleSelectCreateCover = async () => {
+  const file = await selectImageFile()
+  if (!file) return
+  clearCreateCover()
+  createCoverFile.value = file
+  createCoverPreview.value = URL.createObjectURL(file)
+}
+
+const clearCreateCover = () => {
+  if (createCoverPreview.value && createCoverPreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(createCoverPreview.value)
+  }
+  createCoverFile.value = null
+  createCoverPreview.value = ''
+}
+
+const handleCreateCollection = async () => {
+  if (!createForm.title || !createForm.title.trim()) {
+    message.warning('请输入合集标题')
+    return
+  }
+  try {
+    creatingCollection.value = true
+    const created = await adminApi.createCollection({
+      title: createForm.title.trim(),
+      description: createForm.description || '',
+      sourceFolderPath: createForm.sourceFolderPath || '',
+      collectionType: createForm.collectionType ?? 2,
+      enabled: createForm.enabled ?? 1
+    })
+    if (created?.id && createCoverFile.value) {
+      try {
+        await adminApi.uploadCollectionCover(created.id, createCoverFile.value)
+      } catch (error) {
+        message.warning(`封面上传失败：${getErrorMessage(error)}`)
+      }
+    }
+    message.success('合集已创建')
+    showCreateDialog.value = false
+    clearCreateCover()
+    loadCollections()
+  } catch (error) {
+    message.error(getErrorMessage(error))
+  } finally {
+    creatingCollection.value = false
+  }
+}
+
 const resolveCollectionCover = (collection: BackendVideoCollection) => {
   const url = resolveApiUrl(collection.coverUrl)
   if (url) return url
   return getFallbackCover(collection.id ?? '')
+}
+
+const appendCoverTimestamp = (url?: string) => {
+  if (!url) return url
+  const mark = url.includes('?') ? '&' : '?'
+  return `${url}${mark}t=${Date.now()}`
+}
+
+const uploadingCoverIds = ref<Set<string>>(new Set())
+
+const isCoverUploading = (id?: number | string) => {
+  if (!id && id !== 0) return false
+  return uploadingCoverIds.value.has(String(id))
 }
 
 const selectImageFile = () => {
@@ -443,21 +596,29 @@ const selectImageFile = () => {
 }
 
 const handleCollectionCoverUpload = async (collection: BackendVideoCollection) => {
-  if (!collection.id) {
+  if (!collection.id && collection.id !== 0) {
     message.warning('合集ID无效')
     return
   }
+  const key = String(collection.id)
+  if (uploadingCoverIds.value.has(key)) return
   const file = await selectImageFile()
   if (!file) return
-  message.loading('正在上传封面...', { key: 'uploadCover', duration: 0 })
+  uploadingCoverIds.value.add(key)
+  const messageKey = `upload-cover-${key}`
+  const loadingMessage = message.loading('正在上传封面...', { key: messageKey, duration: 0 })
   try {
     const updated = await adminApi.uploadCollectionCover(collection.id, file)
     if (updated?.coverUrl) {
-      collection.coverUrl = updated.coverUrl
+      collection.coverUrl = appendCoverTimestamp(updated.coverUrl)
     }
-    message.success('封面已更新', { key: 'uploadCover' })
+    await loadCollections()
+    message.success('封面已更新', { key: messageKey })
   } catch (error) {
-    message.error(getErrorMessage(error), { key: 'uploadCover' })
+    message.error(getErrorMessage(error), { key: messageKey })
+  } finally {
+    loadingMessage?.destroy()
+    uploadingCoverIds.value.delete(key)
   }
 }
 
@@ -645,14 +806,34 @@ onMounted(() => {
 .cover-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
 }
 
 .cover-img {
-  width: 56px;
-  height: 32px;
+  width: 32px;
+  height: 20px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.cover-preview {
+  width: 260px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.cover-preview-small {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  display: block;
 }
 </style>

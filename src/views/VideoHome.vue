@@ -65,7 +65,10 @@
             <div class="hot-title">{{ item.title || '未命名视频' }}</div>
             <div class="hot-plays">{{ item.totalEpisodes }} 集</div>
             <div class="play-badge" v-if="item.playCount !== undefined">
-              播放 {{ item.playCount || 0 }}
+              <n-icon v-if="playIcon" class="play-icon">
+                <component :is="playIcon" />
+              </n-icon>
+              <span>{{ item.playCount || 0 }}</span>
             </div>
           </div>
         </div>
@@ -96,7 +99,10 @@
                     <div class="video-cover">
                       <img :src="resolveVideoCover(video)" alt="cover" />
                       <div class="play-badge">
-                        播放 {{ video.playCount || 0 }}
+                        <n-icon v-if="playIcon" class="play-icon">
+                          <component :is="playIcon" />
+                        </n-icon>
+                        <span>{{ video.playCount || 0 }}</span>
                       </div>
                     </div>
                   </template>
@@ -104,8 +110,12 @@
                     {{ video.title || '未命名视频' }}
                   </n-ellipsis>
                   <div class="video-meta">
-                    <n-text depth="3" style="font-size: 12px">
-                      播放 {{ video.playCount || 0 }} · 点赞 {{ video.likeCount || 0 }}
+                    <n-text depth="3" class="video-meta-text">
+                      <n-icon v-if="playIcon" class="play-icon">
+                        <component :is="playIcon" />
+                      </n-icon>
+                      <span>{{ video.playCount || 0 }}</span>
+                      · 点赞 {{ video.likeCount || 0 }}
                     </n-text>
                   </div>
                 </n-card>
@@ -127,6 +137,12 @@
                       />
                       <div class="episode-badge" v-if="collection.totalEpisodes > 1">
                         {{ collection.totalEpisodes }} 集
+                      </div>
+                      <div class="play-badge">
+                        <n-icon v-if="playIcon" class="play-icon">
+                          <component :is="playIcon" />
+                        </n-icon>
+                        <span>{{ collection.playCount || 0 }}</span>
                       </div>
                     </div>
                   </template>
@@ -164,6 +180,7 @@ import { resolveApiUrl } from '@/utils/api'
 import { getFallbackCover } from '@/utils/fallbackCover'
 import {
   SearchOutline as SearchIcon,
+  PlayOutline as PlayIcon,
   VideoLibraryOutline as VideoLibraryIcon
 } from '@vicons/ionicons5'
 
@@ -172,6 +189,7 @@ const videoStore = useVideoStore()
 const message = useMessage()
 const videoLibraryIcon = VideoLibraryIcon || null
 const searchIcon = SearchIcon || null
+const playIcon = PlayIcon || null
 
 const resolveEntityCover = (entity: BackendVideo | BackendVideoCollection) => {
   return resolveApiUrl(entity.coverUrl) || getFallbackCover(entity.id ?? '')
@@ -201,17 +219,17 @@ const recentWatching = computed<RecentDisplayItem[]>(() => {
   const items = (videoStore.recentPlayList || [])
     .map((item) => {
       const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
-      if (isCollection && item.collection) {
-        return {
-          id: String(item.collection.id ?? ''),
-          title: item.collection.title || '未命名合集',
-          cover: resolveEntityCover(item.collection),
-          totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
-          playCount: undefined,
-          kind: 'collection',
-          kindLabel: '合集'
+        if (isCollection && item.collection) {
+          return {
+            id: String(item.collection.id ?? ''),
+            title: item.collection.title || '未命名合集',
+            cover: resolveEntityCover(item.collection),
+            totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
+            playCount: item.collection.playCount ?? 0,
+            kind: 'collection',
+            kindLabel: '合集'
+          }
         }
-      }
       if (item.video && item.video.id) {
         return {
           id: String(item.video.id ?? ''),
@@ -775,5 +793,20 @@ onUnmounted(() => {
   background: rgba(0, 0, 0, 0.45);
   padding: 2px 6px;
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.play-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.video-meta-text {
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

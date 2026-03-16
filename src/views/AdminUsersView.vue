@@ -45,6 +45,7 @@
           :row-key="rowKey"
           :checked-row-keys="selectedRowKeys"
           :pagination="false"
+          :scroll-x="tableScrollX"
           @update:checked-row-keys="handleSelectionChange"
         />
 
@@ -80,7 +81,7 @@
           <n-input v-model:value="form.phone" placeholder="电话" />
         </n-form-item>
         <n-form-item label="性别">
-          <n-input v-model:value="form.sex" placeholder="性别" />
+          <n-select v-model:value="form.sex" :options="genderOptions" placeholder="性别" clearable />
         </n-form-item>
         <n-form-item label="角色">
           <n-select v-model:value="form.role" :options="roleOptions" />
@@ -104,6 +105,7 @@ import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, useMessage } from 'naive-ui'
 import { adminApi, type AdminUserPayload } from '@/api/admin'
+import { dictApi } from '@/api/dict'
 import type { BackendUser } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 
@@ -123,11 +125,8 @@ const filters = reactive({
   role: ''
 })
 
-const roleOptions = [
-  { label: '用户', value: 'user' },
-  { label: '管理员', value: 'manage' },
-  { label: '超级管理员', value: 'admin' }
-]
+const roleOptions = ref<Array<{ label: string; value: string }>>([])
+const genderOptions = ref<Array<{ label: string; value: string }>>([])
 
 const batchRole = ref<string | null>(null)
 const batchAuthorization = ref('')
@@ -154,6 +153,8 @@ const selectedIds = computed(() => {
     .map((value) => Number(value))
     .filter((value) => !Number.isNaN(value))
 })
+
+const tableScrollX = 1100
 
 const formatTime = (value?: string) => {
   if (!value) return '-'
@@ -367,7 +368,38 @@ const handleBatchRole = async () => {
   }
 }
 
+const loadDictOptions = async () => {
+  try {
+    const roleItems = await dictApi.getDictItems('role')
+    roleOptions.value = roleItems.map((item) => ({
+      label: item.itemLabel || item.itemValue || '',
+      value: item.itemValue || ''
+    }))
+  } catch (error) {
+    roleOptions.value = [
+      { label: '用户', value: 'user' },
+      { label: '管理员', value: 'manage' },
+      { label: '超级管理员', value: 'admin' }
+    ]
+  }
+
+  try {
+    const genderItems = await dictApi.getDictItems('gender')
+    genderOptions.value = genderItems.map((item) => ({
+      label: item.itemLabel || item.itemValue || '',
+      value: item.itemValue || ''
+    }))
+  } catch (error) {
+    genderOptions.value = [
+      { label: '男', value: 'male' },
+      { label: '女', value: 'female' },
+      { label: '未知', value: 'unknown' }
+    ]
+  }
+}
+
 onMounted(() => {
+  loadDictOptions()
   loadUsers()
 })
 </script>

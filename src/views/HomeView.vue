@@ -125,43 +125,95 @@
           <div class="home-section" v-else-if="section === 'panels'">
             <n-grid class="home-panels-grid" :cols="2" :x-gap="20" :y-gap="20">
               <n-gi>
-                <n-card title="热门排行" size="small">
-                  <n-list v-if="hotRanking.length">
-                    <n-list-item
-                      v-for="video in hotRanking"
-                      :key="video.id"
-                      class="hot-ranking-item"
-                      @click="goToVideoDetail(String(video.id))"
-                    >
-                      <n-thing>
-                        <template #avatar>
-                          <img
-                            class="hot-cover"
-                            :src="resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')"
-                            alt="cover"
-                          />
-                        </template>
-                        <template #header>
-                          <n-text strong>{{ video.title || '未命名视频' }}</n-text>
-                        </template>
-                        <template #description>
-                          <n-text depth="3">播放 {{ video.playCount || 0 }}</n-text>
-                        </template>
-                      </n-thing>
-                    </n-list-item>
-                  </n-list>
-                  <n-empty v-else description="暂无排行数据" />
-                </n-card>
+                  <n-card title="热门排行" size="small">
+                    <n-list v-if="hotRankingDisplay.length">
+                      <n-list-item
+                        v-for="item in hotRankingDisplay"
+                        :key="item.id"
+                        class="hot-ranking-item"
+                        @click="goToVideoDetail(item.id)"
+                      >
+                        <n-thing>
+                          <template #avatar>
+                            <img
+                              class="hot-cover"
+                              :src="item.cover"
+                              alt="cover"
+                            />
+                          </template>
+                          <template #header>
+                            <n-space align="center" :size="6">
+                              <n-ellipsis :tooltip="false" class="hot-title">
+                                {{ item.title || '未命名视频' }}
+                              </n-ellipsis>
+                              <n-tag size="small" :bordered="false" type="info">
+                                {{ item.kindLabel }}
+                              </n-tag>
+                            </n-space>
+                          </template>
+                          <template #description>
+                            <n-ellipsis :tooltip="false" class="hot-desc">
+                              {{ item.description || '暂无简介' }}
+                            </n-ellipsis>
+                            <div class="hot-metrics">
+                              <n-text depth="3" class="metric-line">
+                                <span class="metric-group">
+                                  <n-icon v-if="playIcon" class="play-icon">
+                                    <component :is="playIcon" />
+                                  </n-icon>
+                                  <span>{{ item.playCount || 0 }}</span>
+                                </span>
+                                <span class="metric-group">
+                                  <n-icon v-if="likeIcon" class="play-icon">
+                                    <component :is="likeIcon" />
+                                  </n-icon>
+                                  <span>{{ item.likeCount || 0 }}</span>
+                                </span>
+                                <span class="metric-group">
+                                  <n-icon v-if="collectIcon" class="play-icon">
+                                    <component :is="collectIcon" />
+                                  </n-icon>
+                                  <span>{{ item.collectCount || 0 }}</span>
+                                </span>
+                              </n-text>
+                            </div>
+                          </template>
+                        </n-thing>
+                      </n-list-item>
+                    </n-list>
+                    <n-empty v-else description="暂无排行数据" />
+                  </n-card>
               </n-gi>
               <n-gi>
-                <n-card title="用户行为" size="small">
-                  <n-descriptions v-if="behaviorItems.length" :column="1" size="small">
-                    <n-descriptions-item v-for="item in behaviorItems" :key="item.key" :label="item.label">
-                      {{ item.value }}
-                    </n-descriptions-item>
-                  </n-descriptions>
-                  <n-empty v-else description="暂无行为数据" />
-                </n-card>
+                <div class="behavior-stack">
+                  <n-card title="用户行为" size="small" class="behavior-card">
+                    <n-grid v-if="hasBehaviorData" :cols="2" :x-gap="12" :y-gap="12">
+                      <n-gi v-for="item in behaviorOverviewItems" :key="item.key">
+                        <n-tooltip v-if="item.tooltip" trigger="hover" :show-arrow="false">
+                          <template #trigger>
+                            <n-statistic :label="item.label" :value="item.value" />
+                          </template>
+                          <span class="behavior-tooltip">{{ item.tooltip }}</span>
+                        </n-tooltip>
+                        <n-statistic v-else :label="item.label" :value="item.value" />
+                      </n-gi>
+                    </n-grid>
+                    <n-empty v-else description="暂无行为数据" />
+                  </n-card>
+                  <n-card
+                    v-for="card in behaviorCards"
+                    :key="card.title"
+                    :title="card.title"
+                    size="small"
+                    class="behavior-card"
+                  >
+                    <n-grid :cols="2" :x-gap="12" :y-gap="12">
+                      <n-gi v-for="item in card.items" :key="item.key">
+                        <n-statistic :label="item.label" :value="item.value" />
+                      </n-gi>
+                    </n-grid>
+                  </n-card>
+                </div>
               </n-gi>
             </n-grid>
           </div>
@@ -173,14 +225,20 @@
                 <n-gi v-for="collection in recentCollections" :key="collection.id">
                   <n-card hoverable @click="goToVideoDetail(collection.id)">
                     <template #cover>
-                      <div class="collection-cover">
-                        <img
-                          class="collection-cover-img"
-                          :src="resolveApiUrl(collection.cover) || getFallbackCover(collection.id ?? '')"
-                          alt="cover"
-                        />
-                        <div class="recent-type-badge">{{ collection.kindLabel }}</div>
-                      </div>
+                        <div class="collection-cover">
+                          <img
+                            class="collection-cover-img"
+                            :src="resolveApiUrl(collection.cover) || getFallbackCover(collection.id ?? '')"
+                            alt="cover"
+                          />
+                          <div class="recent-type-badge">{{ collection.kindLabel }}</div>
+                          <div class="recent-play-badge">
+                            <n-icon v-if="playIcon" class="play-icon">
+                              <component :is="playIcon" />
+                            </n-icon>
+                            <span>{{ collection.playCount || 0 }}</span>
+                          </div>
+                        </div>
                     </template>
                     <n-ellipsis :tooltip="false">
                       {{ collection.title }}
@@ -207,13 +265,15 @@
 import { computed, onMounted, ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useVideoStore } from '@/store/video'
-import { videoStatisticsApi } from '@/api/video'
+import { videoSearchApi, videoStatisticsApi } from '@/api/video'
 import { resolveApiUrl } from '@/utils/api'
 import { getFallbackCover } from '@/utils/fallbackCover'
-import type { BackendVideo, BackendVideoCollection } from '@/types'
+import type { BackendVideo, BackendVideoCollection, BackendVideoListItem } from '@/types'
 import {
   VideoLibraryOutline as VideoLibraryIcon,
   PlayOutline as PlayIcon,
+  HeartOutline as LikeIcon,
+  BookmarkOutline as CollectIcon,
   TimeOutline as TimeIcon,
   SettingsOutline as SettingsIcon,
   SwapVerticalOutline as SwapVerticalIcon,
@@ -225,6 +285,8 @@ const router = useRouter()
 const videoStore = useVideoStore()
 const videoLibraryIcon = VideoLibraryIcon || null
 const playIcon = PlayIcon || null
+const likeIcon = LikeIcon || null
+const collectIcon = CollectIcon || null
 const timeIcon = TimeIcon || null
 const settingsIcon = SettingsIcon || null
 const ORDER_STORAGE_KEY = 'home_section_order'
@@ -274,11 +336,32 @@ const handleResize = () => {
   isMobile.value = window.innerWidth <= 768
 }
 
-const hotRanking = ref<BackendVideo[]>([])
+const hotRanking = ref<BackendVideoListItem[]>([])
 const userBehavior = ref<Record<string, any>>({})
 
 const totalVideos = computed(() => {
   return videoStore.collections.reduce((sum, col) => sum + col.totalEpisodes, 0)
+})
+
+const hotRankingDisplay = computed<HotRankingDisplay[]>(() => {
+  return (hotRanking.value || [])
+    .map((item) => {
+      const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
+      const entity = isCollection ? item.collection : item.video
+      if (!entity || !entity.id) return null
+      return {
+        id: String(entity.id ?? ''),
+        title: entity.title || '未命名视频',
+        cover: resolveApiUrl(entity.coverUrl) || getFallbackCover(entity.id ?? ''),
+        description: entity.description || '',
+        playCount: isCollection ? (item.collection?.playCount ?? 0) : (item.video?.playCount ?? 0),
+        likeCount: isCollection ? (item.collection?.likeCount ?? 0) : (item.video?.likeCount ?? 0),
+        collectCount: isCollection ? (item.collection?.collectCount ?? 0) : (item.video?.collectCount ?? 0),
+        kindLabel: isCollection ? '合集' : '视频'
+      }
+    })
+    .filter((item): item is HotRankingDisplay => Boolean(item))
+    .slice(0, 6)
 })
 
 type RecentCollectionDisplay = {
@@ -287,38 +370,71 @@ type RecentCollectionDisplay = {
   cover: string
   totalEpisodes: number
   kindLabel: string
+  playCount?: number
+}
+
+type HotRankingDisplay = {
+  id: string
+  title: string
+  cover: string
+  description?: string
+  playCount?: number
+  likeCount?: number
+  collectCount?: number
+  kindLabel: string
 }
 
 const resolveRecentCover = (entity: BackendVideo | BackendVideoCollection) => {
   return resolveApiUrl(entity.coverUrl) || getFallbackCover(entity.id ?? '')
 }
 
+
 const recentCollections = computed<RecentCollectionDisplay[]>(() => {
   const items = (videoStore.recentPlayList || [])
     .map((item) => {
       const isCollection = item.itemType === 'collection' || (!!item.collection && !item.video)
-      if (isCollection && item.collection) {
-        return {
-          id: String(item.collection.id ?? ''),
-          title: item.collection.title || '未命名合集',
-          cover: resolveRecentCover(item.collection),
-          totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
-          kindLabel: '合集'
+        if (isCollection && item.collection) {
+          return {
+            id: String(item.collection.id ?? ''),
+            title: item.collection.title || '未命名合集',
+            cover: resolveRecentCover(item.collection),
+            totalEpisodes: Math.max(1, item.collection.videoCount ?? 1),
+            kindLabel: '合集',
+            playCount: item.collection.playCount ?? 0
+          }
         }
-      }
-      if (item.video && item.video.id) {
-        return {
-          id: String(item.video.id ?? ''),
-          title: item.video.title || '未命名视频',
-          cover: resolveRecentCover(item.video),
-          totalEpisodes: 1,
-          kindLabel: '视频'
-        }
+        if (item.video && item.video.id) {
+          return {
+            id: String(item.video.id ?? ''),
+            title: item.video.title || '未命名视频',
+            cover: resolveRecentCover(item.video),
+            totalEpisodes: 1,
+            kindLabel: '视频',
+            playCount: item.video.playCount ?? 0
+          }
       }
       return null
     })
     .filter((item): item is RecentCollectionDisplay => Boolean(item))
   return items.slice(0, 5)
+})
+
+const recentTitleMap = computed(() => {
+  const map = new Map<string, string>()
+  videoStore.collections.forEach((collection) => {
+    if (collection.id) {
+      map.set(String(collection.id), collection.title || '未命名合集')
+    }
+  })
+  ;(videoStore.recentPlayList || []).forEach((item) => {
+    if (item.collection?.id) {
+      map.set(String(item.collection.id), item.collection.title || '未命名合集')
+    }
+    if (item.video?.id) {
+      map.set(String(item.video.id), item.video.title || '未命名视频')
+    }
+  })
+  return map
 })
 
 const behaviorLabelMap: Record<string, string> = {
@@ -355,29 +471,79 @@ const formatDuration = (seconds: number) => {
   return `${s} 秒`
 }
 
-const formatRecentWatched = (value: unknown) => {
+const resolveRecentWatchedTitle = (item: unknown) => {
+  if (!item) return ''
+  if (typeof item === 'object') {
+    const raw = item as Record<string, any>
+    const direct = raw.title
+      || raw.name
+      || raw.videoTitle
+      || raw.collectionTitle
+      || raw.videoName
+      || raw.collectionName
+    if (direct) return String(direct)
+    const rawId = raw.id ?? raw.videoId ?? raw.collectionId
+    if (rawId !== undefined && rawId !== null) {
+      const key = String(rawId)
+      return recentTitleMap.value.get(key) || ''
+    }
+    return ''
+  }
+  const key = String(item)
+  const mapped = recentTitleMap.value.get(key)
+  if (mapped) return mapped
+  return /^\d+$/.test(key) ? '' : key
+}
+
+const formatRecentWatchedCount = (value: unknown) => {
   if (!Array.isArray(value)) return '暂无'
   if (value.length === 0) return '暂无'
-  const names = value
-    .map((item: any) => item?.title || item?.name || item?.videoTitle || item?.collectionTitle || item?.id)
+  return `${value.length} 条`
+}
+
+const buildRecentWatchedTooltip = (value: unknown) => {
+  const names = Array.isArray(value)
+    ? value
+      .map(resolveRecentWatchedTitle)
+      .filter((item) => item && item !== 'undefined' && item !== 'null')
+    : []
+  const fallbackNames = (videoStore.recentPlayList || [])
+    .map((item) => {
+      if (item.collection?.title) return item.collection.title
+      if (item.video?.title) return item.video.title
+      return ''
+    })
     .filter(Boolean)
-    .slice(0, 3)
-    .map((item: any) => String(item))
-  const countText = `${value.length} 条`
-  if (names.length === 0) return countText
-  return `${countText}（${names.join('、')}${value.length > names.length ? ' 等' : ''}）`
+  const useNames = names.length > 0 ? names : fallbackNames
+  if (useNames.length === 0) return ''
+  const uniqueNames = Array.from(new Set(useNames)).slice(0, 6)
+  return uniqueNames.join('、')
 }
 
 const formatBehaviorValue = (key: string, value: unknown) => {
   if (value === null || value === undefined || value === '') return '暂无'
   if (key === 'recentWatchedVideos') {
-    return formatRecentWatched(value)
+    return formatRecentWatchedCount(value)
   }
+
+  const countKeys = new Set([
+    'todayPlayCount',
+    'weekPlayCount',
+    'monthPlayCount',
+    'totalPlayCount',
+    'playCount',
+    'likeCount',
+    'commentCount',
+    'collectCount',
+    'favoriteCount',
+    'watchedVideoCount'
+  ])
+
   if (typeof value === 'number') {
-    if (key.toLowerCase().includes('time')) {
+    if (key.toLowerCase().includes('time') && !countKeys.has(key)) {
       return formatDuration(value)
     }
-    if (value > 1e12) {
+    if (value > 1e12 && !countKeys.has(key)) {
       return new Date(value).toLocaleString()
     }
     return value.toLocaleString()
@@ -387,11 +553,19 @@ const formatBehaviorValue = (key: string, value: unknown) => {
     return `${value.length} 条`
   }
   if (typeof value === 'string') {
-    const parsed = Date.parse(value)
+    const trimmed = value.trim()
+    if (countKeys.has(key)) {
+      const asNumber = Number(trimmed)
+      if (!Number.isNaN(asNumber)) {
+        return asNumber.toLocaleString()
+      }
+      return trimmed
+    }
+    const parsed = Date.parse(trimmed)
     if (!Number.isNaN(parsed)) {
       return new Date(parsed).toLocaleString()
     }
-    return value
+    return trimmed
   }
   if (typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>)
@@ -401,12 +575,46 @@ const formatBehaviorValue = (key: string, value: unknown) => {
   return String(value)
 }
 
-const behaviorItems = computed(() => {
-  return Object.entries(userBehavior.value).map(([key, value]) => ({
+const behaviorOverviewItems = computed(() => {
+  const keys = ['recentWatchedVideos', 'totalWatchTime', 'watchedVideoCount', 'lastPlayTime']
+  return keys.map((key) => ({
     key,
     label: formatBehaviorLabel(key),
-    value: formatBehaviorValue(key, value)
+    value: formatBehaviorValue(key, userBehavior.value?.[key]),
+    tooltip: key === 'recentWatchedVideos' ? buildRecentWatchedTooltip(userBehavior.value?.[key]) : ''
   }))
+})
+
+const hasBehaviorData = computed(() => {
+  return Object.keys(userBehavior.value || {}).length > 0
+})
+
+const pickBehaviorValue = (key: string) => {
+  const value = userBehavior.value?.[key]
+  return formatBehaviorValue(key, value)
+}
+
+const behaviorCards = computed(() => {
+  return [
+    {
+      title: '播放概览',
+      items: [
+        { key: 'todayPlayCount', label: '今日播放', value: pickBehaviorValue('todayPlayCount') },
+        { key: 'weekPlayCount', label: '本周播放', value: pickBehaviorValue('weekPlayCount') },
+        { key: 'monthPlayCount', label: '本月播放', value: pickBehaviorValue('monthPlayCount') },
+        { key: 'totalPlayCount', label: '累计播放', value: pickBehaviorValue('totalPlayCount') }
+      ]
+    },
+    {
+      title: '互动概览',
+      items: [
+        { key: 'likeCount', label: '点赞次数', value: pickBehaviorValue('likeCount') },
+        { key: 'commentCount', label: '评论次数', value: pickBehaviorValue('commentCount') },
+        { key: 'collectCount', label: '收藏次数', value: pickBehaviorValue('collectCount') },
+        { key: 'favoriteCount', label: '合集收藏', value: pickBehaviorValue('favoriteCount') }
+      ]
+    }
+  ]
 })
 
 const playRecordCount = computed(() => {
@@ -433,7 +641,7 @@ const goToVideoDetail = (id: string) => {
 
 const loadStatistics = async () => {
   try {
-    hotRanking.value = await videoStatisticsApi.getHotRanking()
+    hotRanking.value = await videoSearchApi.getHotVideos()
   } catch (error) {
     hotRanking.value = []
   }
@@ -534,12 +742,79 @@ onUnmounted(() => {
   border-radius: 8px;
 }
 
+.recent-play-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  color: #fff;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.play-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.play-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
 .hot-cover {
   width: 64px;
   height: 64px;
   border-radius: 8px;
   object-fit: cover;
   background: #111;
+}
+
+.hot-title {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hot-desc {
+  max-width: 220px;
+  font-size: 12px;
+  color: var(--n-text-color-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.hot-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.metric-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.metric-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.metric-group + .metric-group {
+  margin-left: 10px;
 }
 
 .hot-ranking-item {
@@ -550,6 +825,39 @@ onUnmounted(() => {
 .hot-ranking-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.behavior-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.behavior-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.behavior-card :deep(.n-statistic-value) {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.behavior-card :deep(.n-statistic-label) {
+  font-size: 12px;
+  color: var(--n-text-color-2);
+}
+
+.behavior-tooltip {
+  display: inline-block;
+  max-width: 220px;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .collection-info {

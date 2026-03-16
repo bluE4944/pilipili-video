@@ -1,5 +1,13 @@
 import { apiRequest } from '@/utils/api'
-import type { BackendUser, BackendVideo, BackendVideoCollection, BackendVideoEpisode, PageResult } from '@/types'
+import type {
+  BackendDict,
+  BackendDictItem,
+  BackendUser,
+  BackendVideo,
+  BackendVideoCollection,
+  BackendVideoEpisode,
+  PageResult
+} from '@/types'
 
 export interface AdminUserPayload {
   userName?: string
@@ -26,11 +34,37 @@ export interface AdminBatchCollectionUpdatePayload {
   description?: string
 }
 
+export interface AdminCollectionPayload {
+  title?: string
+  description?: string
+  coverUrl?: string
+  sourceFolderPath?: string
+  collectionType?: number
+  enabled?: number
+  videoCount?: number
+}
+
 export interface AdminEpisodeUpdateItem {
   id: number
   episodeNumber?: string
   episodeName?: string
   sortOrder?: number
+}
+
+export interface AdminDictPayload {
+  dictCode?: string
+  dictName?: string
+  description?: string
+  enabled?: number
+  sortOrder?: number
+}
+
+export interface AdminDictItemPayload {
+  itemValue?: string
+  itemLabel?: string
+  sortOrder?: number
+  enabled?: number
+  remark?: string
 }
 
 export const adminApi = {
@@ -115,6 +149,10 @@ export const adminApi = {
     return apiRequest.get<PageResult<BackendVideoCollection>>('/api/admin/collections/page', { params })
   },
 
+  createCollection(payload: AdminCollectionPayload): Promise<BackendVideoCollection> {
+    return apiRequest.post<BackendVideoCollection>('/api/admin/collections', payload)
+  },
+
   updateCollectionEnabledBatch(ids: number[], enabled: number): Promise<void> {
     return apiRequest.put<void>('/api/admin/collections/batch/enabled', ids, {
       params: { enabled }
@@ -149,5 +187,55 @@ export const adminApi = {
 
   updateCollectionEpisodes(collectionId: number | string, items: AdminEpisodeUpdateItem[]): Promise<void> {
     return apiRequest.put<void>(`/api/admin/collections/${collectionId}/episodes/batch`, items)
+  },
+
+  getDictPage(params?: {
+    pageNum?: number
+    pageSize?: number
+    dictCode?: string
+    dictName?: string
+    enabled?: number
+  }): Promise<PageResult<BackendDict>> {
+    return apiRequest.get<PageResult<BackendDict>>('/api/admin/dict/page', { params })
+  },
+
+  getDictById(dictId: number | string): Promise<BackendDict> {
+    return apiRequest.get<BackendDict>(`/api/admin/dict/${dictId}`)
+  },
+
+  createDict(payload: AdminDictPayload): Promise<BackendDict> {
+    return apiRequest.post<BackendDict>('/api/admin/dict', payload)
+  },
+
+  updateDict(dictId: number | string, payload: AdminDictPayload): Promise<BackendDict> {
+    return apiRequest.put<BackendDict>(`/api/admin/dict/${dictId}`, payload)
+  },
+
+  deleteDict(dictId: number | string): Promise<void> {
+    return apiRequest.delete<void>(`/api/admin/dict/${dictId}`)
+  },
+
+  deleteDicts(dictIds: number[]): Promise<void> {
+    return apiRequest.delete<void>('/api/admin/dict/batch', { data: dictIds })
+  },
+
+  getDictItems(dictCode: string): Promise<BackendDictItem[]> {
+    return apiRequest.get<BackendDictItem[]>(`/api/admin/dict/${dictCode}/items`)
+  },
+
+  createDictItem(dictCode: string, payload: AdminDictItemPayload): Promise<BackendDictItem> {
+    return apiRequest.post<BackendDictItem>(`/api/admin/dict/${dictCode}/items`, payload)
+  },
+
+  updateDictItem(itemId: number | string, payload: AdminDictItemPayload): Promise<BackendDictItem> {
+    return apiRequest.put<BackendDictItem>(`/api/admin/dict/items/${itemId}`, payload)
+  },
+
+  deleteDictItem(itemId: number | string): Promise<void> {
+    return apiRequest.delete<void>(`/api/admin/dict/items/${itemId}`)
+  },
+
+  deleteDictItems(itemIds: number[]): Promise<void> {
+    return apiRequest.delete<void>('/api/admin/dict/items/batch', { data: itemIds })
   }
 }

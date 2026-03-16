@@ -73,6 +73,8 @@ watch(
 )
 
 const isAdmin = computed(() => userStore.currentUser?.role === 'admin')
+const isManager = computed(() => userStore.currentUser?.role === 'manage')
+const canManage = computed(() => isAdmin.value || isManager.value)
 
 const baseMenuOptions = [
   {
@@ -93,7 +95,7 @@ const baseMenuOptions = [
   }
 ]
 
-const adminMenuOptions = [
+const manageMenuOptions = [
   {
     label: '用户管理',
     key: 'adminUsers'
@@ -108,13 +110,29 @@ const adminMenuOptions = [
   }
 ]
 
+const adminOnlyMenuOptions = [
+  {
+    label: '字典管理',
+    key: 'adminDict'
+  }
+]
+
 const menuOptions = computed(() => {
-  return isAdmin.value ? [...baseMenuOptions, ...adminMenuOptions] : baseMenuOptions
+  if (!canManage.value) return baseMenuOptions
+  const options = [...baseMenuOptions, ...manageMenuOptions]
+  if (isAdmin.value) {
+    options.push(...adminOnlyMenuOptions)
+  }
+  return options
 })
 
 const userOptions = computed(() => {
   if (userStore.currentUser && !userStore.currentUser.id.startsWith('guest_')) {
     return [
+      {
+        label: '个人信息管理',
+        key: 'profile'
+      },
       {
         label: '退出登录',
         key: 'logout'
@@ -145,6 +163,8 @@ const toggleTheme = () => {
 const handleUserAction = (key: string) => {
   if (key === 'logout') {
     userStore.logout()
+  } else if (key === 'profile') {
+    router.push({ name: 'profile' })
   } else if (key === 'login') {
     router.push({ name: 'login' })
   } else if (key === 'register') {

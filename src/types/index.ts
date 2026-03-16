@@ -18,6 +18,9 @@ export interface VideoCollection {
   totalEpisodes: number
   createdAt: number
   updatedAt: number
+  playCount?: number
+  likeCount?: number
+  collectCount?: number
 }
 
 export interface PlayRecord {
@@ -95,6 +98,7 @@ export interface BackendUser {
   updateTime?: string
   email?: string
   phone?: string
+  gender?: string
   role?: string
   authorization?: string
 }
@@ -152,6 +156,9 @@ export interface BackendVideoCollection {
   sourceFolderPath?: string
   enabled?: number
   videoCount?: number
+  playCount?: number
+  likeCount?: number
+  collectCount?: number
   createTime?: string
   updateTime?: string
 }
@@ -252,6 +259,29 @@ export interface BackendSystemConfig {
   configType?: number
   configValue?: string
   description?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface BackendDict {
+  id?: number
+  dictCode?: string
+  dictName?: string
+  description?: string
+  enabled?: number
+  sortOrder?: number
+  createTime?: string
+  updateTime?: string
+}
+
+export interface BackendDictItem {
+  id?: number
+  dictCode?: string
+  itemValue?: string
+  itemLabel?: string
+  sortOrder?: number
+  enabled?: number
+  remark?: string
   createTime?: string
   updateTime?: string
 }
