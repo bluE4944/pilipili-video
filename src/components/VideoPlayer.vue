@@ -869,13 +869,16 @@ const getCurrentTime = () => {
 
 const resolveSourceExt = (format?: string, url?: string) => {
   const cleaned = (format || '').replace('.', '').toLowerCase()
-  let ext = cleaned
-  if (!ext && url) {
+  let urlExt = ''
+  if (url) {
     const pureUrl = url.split('?')[0].split('#')[0]
     const parts = pureUrl.split('.')
-    ext = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
+    urlExt = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : ''
   }
-  return ext
+  if (urlExt === 'm3u8') {
+    return urlExt
+  }
+  return cleaned || urlExt
 }
 
 const resolveSourceType = (format?: string, url?: string) => {
@@ -994,12 +997,14 @@ const initPlayer = async () => {
   // 播放地址为空已播放完毕
 
   let file = getVideoFile(videoFile.value.id)
+  const localFileExt = file ? resolveSourceExt(videoFile.value?.format, file.name) : ''
+  const shouldForceBackendStream = localFileExt === 'mkv'
 
   let blobUrl: string | null = null
 
 
 
-  if (file && file instanceof File && file.size > 0) {
+  if (file && file instanceof File && file.size > 0 && !shouldForceBackendStream) {
 
     console.log('Using local file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
@@ -1040,7 +1045,7 @@ const initPlayer = async () => {
 
   } else {
 
-    console.log('Local file not found, fetching from backend...')
+    console.log(shouldForceBackendStream ? 'Local MKV detected, fetching transcoded stream from backend...' : 'Local file not found, fetching from backend...')
     try {
 
       const playUrl = await videoStore.getVideoPlayUrl(videoFile.value.id)
