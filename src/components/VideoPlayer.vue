@@ -883,6 +883,8 @@ const resolveSourceType = (format?: string, url?: string) => {
   switch (ext) {
     case 'mp4':
       return 'video/mp4'
+    case 'mkv':
+      return 'video/x-matroska'
     case 'webm':
       return 'video/webm'
     case 'ogg':

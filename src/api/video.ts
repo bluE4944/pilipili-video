@@ -19,6 +19,23 @@ const toTimestamp = (value?: string) => {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
+const resolveVideoFormat = (...candidates: Array<string | undefined>) => {
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const normalized = candidate.trim()
+    if (!normalized) continue
+    if (/^[a-z0-9]+$/i.test(normalized)) {
+      return normalized.toLowerCase()
+    }
+    const pureValue = normalized.split('?')[0].split('#')[0]
+    const lastDotIndex = pureValue.lastIndexOf('.')
+    if (lastDotIndex >= 0 && lastDotIndex < pureValue.length - 1) {
+      return pureValue.substring(lastDotIndex + 1).toLowerCase()
+    }
+  }
+  return 'mp4'
+}
+
 const mapEpisodeToVideoFile = (episode: BackendVideoEpisode): VideoFile => {
   return {
     id: String(episode.videoId ?? episode.id ?? ''),
@@ -26,7 +43,7 @@ const mapEpisodeToVideoFile = (episode: BackendVideoEpisode): VideoFile => {
     path: episode.filePath || '',
     size: Number(episode.fileSize || 0),
     modifiedTime: toTimestamp(episode.fileModifyTime),
-    format: episode.fileFormat || 'mp4',
+    format: resolveVideoFormat(episode.fileFormat, episode.filePath, episode.episodeName),
     duration: undefined,
     thumbnail: undefined
   }
@@ -39,7 +56,7 @@ const mapVideoEntityToVideoFile = (video: BackendVideo, fallbackName?: string): 
     path: video.videoUrl || '',
     size: Number(video.fileSize || 0),
     modifiedTime: toTimestamp(video.updateTime || video.createTime),
-    format: video.format || 'mp4',
+    format: resolveVideoFormat(video.format, video.videoUrl, video.title, fallbackName),
     duration: video.duration ?? undefined,
     thumbnail: resolveApiUrl(video.coverUrl) || getFallbackCover(video.id ?? '')
   }
