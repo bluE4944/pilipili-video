@@ -5,6 +5,14 @@ const CORE_VERSION = '0.12.6'
 const CORE_BASE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/umd`
 const BROWSER_COMPAT_MAX_SIZE = 600 * 1024 * 1024
 
+export type BrowserCompatSource =
+  | File
+  | {
+      url: string
+      fileName?: string
+      size?: number | null
+    }
+
 let ffmpeg: FFmpeg | null = null
 let ffmpegLoadPromise: Promise<FFmpeg> | null = null
 
@@ -48,31 +56,48 @@ const safeDeleteFile = async (instance: FFmpeg, path: string) => {
 
 export const getBrowserCompatMaxSizeMb = () => Math.round(BROWSER_COMPAT_MAX_SIZE / 1024 / 1024)
 
-export const getBrowserCompatFallbackReason = (file?: File | null): string => {
-  if (!file) {
-    return 'missing_local_file'
+const resolveSourceName = (source?: BrowserCompatSource | null) => {
+  if (!source) return ''
+  if (source instanceof File) {
+    return source.name
   }
-  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  return source.fileName || source.url || ''
+}
+
+const resolveSourceSize = (source?: BrowserCompatSource | null) => {
+  if (!source) return null
+  if (source instanceof File) {
+    return source.size
+  }
+  return typeof source.size === 'number' ? source.size : null
+}
+
+export const getBrowserCompatFallbackReason = (source?: BrowserCompatSource | null): string => {
+  if (!source) {
+    return 'missing_source'
+  }
+  const ext = resolveSourceName(source).split('.').pop()?.toLowerCase() || ''
   if (ext !== 'mkv') {
     return 'unsupported_extension'
   }
-  if (file.size > BROWSER_COMPAT_MAX_SIZE) {
+  const size = resolveSourceSize(source)
+  if (typeof size === 'number' && size > BROWSER_COMPAT_MAX_SIZE) {
     return 'file_too_large'
   }
   return ''
 }
 
-export const isBrowserCompatFallbackCandidate = (file?: File | null) => {
-  return !getBrowserCompatFallbackReason(file)
+export const isBrowserCompatFallbackCandidate = (source?: BrowserCompatSource | null) => {
+  return !getBrowserCompatFallbackReason(source)
 }
 
 export const createBrowserCompatibleMp4Url = async (
-  file: File,
+  source: BrowserCompatSource,
   options?: {
     onProgress?: (progress: number, status: string) => void
   }
 ): Promise<string> => {
-  const reason = getBrowserCompatFallbackReason(file)
+  const reason = getBrowserCompatFallbackReason(source)
   if (reason) {
     throw new Error(reason)
   }
@@ -91,8 +116,10 @@ export const createBrowserCompatibleMp4Url = async (
 
   instance.on('progress', progressHandler)
   try {
-    options?.onProgress?.(0.1, 'writing_input')
-    await instance.writeFile(inputName, await fetchFile(file))
+    options?.onProgress?.(0.1, source instanceof File ? 'writing_input' : 'fetching_input')
+    const inputData = source instanceof File ? await fetchFile(source) : await fetchFile(source.url)
+    options?.onProgress?.(0.15, 'writing_input')
+    await instance.writeFile(inputName, inputData)
     options?.onProgress?.(0.15, 'transcoding')
     const exitCode = await instance.exec([
       '-i', inputName,

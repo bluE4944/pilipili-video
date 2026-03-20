@@ -45,6 +45,31 @@
 
     </div>
 
+    <div v-if="videoFile" class="player-browser-compat-actions">
+      <span class="player-browser-compat-status" :class="`is-${currentPlaybackMode}`">
+        {{ currentPlaybackModeText }}
+      </span>
+      <n-button
+        secondary
+        strong
+        size="small"
+        type="warning"
+        :disabled="!browserCompatActionEnabled || browserCompatProcessing"
+        @click="handleManualBrowserCompat"
+      >
+        {{ browserCompatActionText }}
+      </n-button>
+      <n-button
+        v-if="currentPlaySource?.sourceMode === 'browser_compat'"
+        secondary
+        size="small"
+        @click="handleRestoreOriginalPlayback"
+      >
+        恢复原始播放
+      </n-button>
+      <span class="player-browser-compat-tip">{{ browserCompatActionTip }}</span>
+    </div>
+
     <teleport v-if="playerOverlayTarget && danmakuEnabled" :to="playerOverlayTarget">
       <div class="danmaku-overlay" :class="{ 'is-paused': danmakuPaused }">
         <div
@@ -122,7 +147,13 @@ import { useMessage } from 'naive-ui'
 
 import { getVideoFile, revokeVideoBlobUrl, registerVideoFile } from '@/utils/videoFileManager'
 import { getErrorMessage } from '@/utils/error'
-import { createBrowserCompatibleMp4Url, getBrowserCompatFallbackReason, getBrowserCompatMaxSizeMb, isBrowserCompatFallbackCandidate } from '@/utils/browserVideoCompat'
+import {
+  createBrowserCompatibleMp4Url,
+  getBrowserCompatFallbackReason,
+  getBrowserCompatMaxSizeMb,
+  isBrowserCompatFallbackCandidate,
+  type BrowserCompatSource
+} from '@/utils/browserVideoCompat'
 import { danmakuApi, type Danmaku } from '@/api/danmaku'
 
 
@@ -392,6 +423,53 @@ const browserCompatProcessing = ref(false)
 const browserCompatProgress = ref(0)
 const browserCompatStatusText = ref('')
 let browserCompatAttemptKey: string | null = null
+const browserCompatActionSource = computed(() => getBrowserCompatSource(currentPlaySource.value?.playUrl || videoUrl.value))
+const browserCompatActionEnabled = computed(() => !!browserCompatActionSource.value && isBrowserCompatFallbackCandidate(browserCompatActionSource.value))
+const browserCompatActionText = computed(() => {
+  if (browserCompatProcessing.value) {
+    return '浏览器兼容处理中...'
+  }
+  if (currentPlaySource.value?.sourceMode === 'browser_compat') {
+    return '已启用浏览器兼容播放'
+  }
+  return '浏览器兼容播放'
+})
+const browserCompatActionTip = computed(() => {
+  if (browserCompatProcessing.value) {
+    return '正在使用 FFmpeg.wasm 处理当前视频'
+  }
+  if (currentPlaySource.value?.sourceMode === 'browser_compat') {
+    return '当前正在使用浏览器端兼容流播放'
+  }
+  if (browserCompatActionEnabled.value) {
+    return '播放异常或无声音时，可手动切换到浏览器端兼容播放'
+  }
+  const source = browserCompatActionSource.value
+  if (!source) {
+    return '当前没有可用于浏览器兼容处理的视频源'
+  }
+  return resolveBrowserCompatReasonText(getBrowserCompatFallbackReason(source))
+})
+const currentPlaybackMode = computed(() => {
+  switch (currentPlaySource.value?.sourceMode) {
+    case 'browser_compat':
+      return 'browser-compat'
+    case 'local_blob':
+      return 'local'
+    default:
+      return 'original'
+  }
+})
+const currentPlaybackModeText = computed(() => {
+  switch (currentPlaybackMode.value) {
+    case 'browser-compat':
+      return '当前：浏览器兼容流'
+    case 'local':
+      return '当前：本地原始流'
+    default:
+      return '当前：原始视频流'
+  }
+})
 const keyHint = ref<{ text: string; icon: string; visible: boolean; percent: number | null }>({
   text: '',
   icon: '',
@@ -943,12 +1021,27 @@ const getCurrentLocalVideoFile = () => {
   return file instanceof File ? file : null
 }
 
+const getBrowserCompatSource = (playUrl?: string | null): BrowserCompatSource | null => {
+  const file = getCurrentLocalVideoFile()
+  if (file) {
+    return file
+  }
+  if (!playUrl) {
+    return null
+  }
+  return {
+    url: playUrl,
+    fileName: videoFile.value?.name || `video-${videoFile.value?.id || 'unknown'}.mkv`,
+    size: typeof videoFile.value?.size === 'number' ? videoFile.value.size : null
+  }
+}
+
 const resolveBrowserCompatReasonText = (reason: string) => {
   switch (reason) {
-    case 'missing_local_file':
-      return '缺少本地视频文件，无法使用浏览器端兼容播放'
+    case 'missing_source':
+      return '缺少可转换的视频源，无法使用浏览器端兼容播放'
     case 'unsupported_extension':
-      return '浏览器端兼容播放仅支持本地 MKV 文件'
+      return '浏览器端兼容播放当前仅支持 MKV 视频源'
     case 'file_too_large':
       return `文件超过 ${getBrowserCompatMaxSizeMb()}MB，已禁用浏览器端兼容播放`
     default:
@@ -960,8 +1053,10 @@ const resolveBrowserCompatStatusText = (status: string, progress: number) => {
   switch (status) {
     case 'loading_engine':
       return '正在加载浏览器兼容引擎...'
+    case 'fetching_input':
+      return '正在拉取原始视频数据...'
     case 'writing_input':
-      return '正在写入本地视频...'
+      return '正在写入视频数据...'
     case 'ready':
       return '浏览器兼容播放源已就绪'
     case 'transcoding':
@@ -985,14 +1080,17 @@ const resolvePlaySourceLabel = (source?: PlayerSourceInfo | null) => {
   }
 }
 
-const buildBrowserCompatPlaybackSource = async (): Promise<{ blobUrl: string; sourceInfo: PlayerSourceInfo }> => {
-  const file = getCurrentLocalVideoFile()
-  const reason = getBrowserCompatFallbackReason(file)
+const buildBrowserCompatPlaybackSource = async (playUrl?: string | null): Promise<{ blobUrl: string; sourceInfo: PlayerSourceInfo }> => {
+  const source = getBrowserCompatSource(playUrl)
+  const reason = getBrowserCompatFallbackReason(source)
   if (reason) {
     throw new Error(resolveBrowserCompatReasonText(reason))
   }
 
-  const attemptKey = `${videoFile.value?.id || ''}:${file?.size || 0}:${file?.lastModified || 0}`
+  const sourceName = source instanceof File ? source.name : source?.url || ''
+  const sourceSize = source instanceof File ? source.size : source?.size || 0
+  const sourceLastModified = source instanceof File ? source.lastModified : 0
+  const attemptKey = `${videoFile.value?.id || ''}:${sourceName}:${sourceSize}:${sourceLastModified}`
   if (browserCompatAttemptKey === attemptKey) {
     throw new Error('当前视频已经尝试过浏览器端兼容播放')
   }
@@ -1002,7 +1100,7 @@ const buildBrowserCompatPlaybackSource = async (): Promise<{ blobUrl: string; so
   browserCompatStatusText.value = '正在加载浏览器兼容引擎...'
 
   try {
-    const blobUrl = await createBrowserCompatibleMp4Url(file as File, {
+    const blobUrl = await createBrowserCompatibleMp4Url(source as BrowserCompatSource, {
       onProgress: (progress, status) => {
         const percent = Math.max(1, Math.min(100, Math.round(progress * 100)))
         browserCompatProgress.value = percent
@@ -1023,6 +1121,77 @@ const buildBrowserCompatPlaybackSource = async (): Promise<{ blobUrl: string; so
       resetBrowserCompatState()
     }, 150)
   }
+}
+
+const switchPlayerToBrowserCompat = async (playUrl?: string | null, notice?: string) => {
+  const fallbackSource = await buildBrowserCompatPlaybackSource(playUrl)
+  if (destroyed) return
+
+  const resumeTime = player.value?.currentTime() || 0
+  const shouldResume = !!player.value && !player.value.paused()
+
+  revokeCurrentBlobUrl()
+  currentBlobUrl.value = fallbackSource.blobUrl
+  videoUrl.value = fallbackSource.blobUrl
+  currentPlaySource.value = fallbackSource.sourceInfo
+
+  if (player.value && isPlayerUsable()) {
+    player.value.src({
+      src: fallbackSource.blobUrl,
+      type: 'video/mp4'
+    })
+    if (resumeTime > 0) {
+      safeOne('loadedmetadata', () => {
+        if (!destroyed && player.value && isPlayerUsable()) {
+          player.value.currentTime(resumeTime)
+        }
+      })
+    }
+    if (shouldResume) {
+      safeOne('canplay', () => {
+        if (!destroyed && player.value && isPlayerUsable()) {
+          player.value?.play()?.catch(() => {})
+        }
+      })
+    }
+    player.value.load()
+  } else {
+    scheduleInitPlayer(0)
+  }
+
+  if (notice) {
+    message.warning(notice)
+  }
+}
+
+const handleManualBrowserCompat = async () => {
+  if (browserCompatProcessing.value) return
+  const source = browserCompatActionSource.value
+  if (!source) {
+    message.warning('当前没有可用于浏览器兼容处理的视频源')
+    return
+  }
+  const reason = getBrowserCompatFallbackReason(source)
+  if (reason) {
+    message.warning(resolveBrowserCompatReasonText(reason))
+    return
+  }
+  try {
+    await switchPlayerToBrowserCompat(currentPlaySource.value?.playUrl || videoUrl.value, '已切换为浏览器端兼容播放')
+  } catch (error) {
+    console.error('Failed to enable browser compatible playback manually:', error)
+    message.error(getErrorMessage(error))
+  }
+}
+
+const handleRestoreOriginalPlayback = () => {
+  if (browserCompatProcessing.value || currentPlaySource.value?.sourceMode !== 'browser_compat') {
+    return
+  }
+  savePlayRecord()
+  browserCompatAttemptKey = null
+  scheduleInitPlayer(0)
+  message.info('已恢复原始播放源')
 }
 
 defineExpose({
@@ -1118,15 +1287,13 @@ const initPlayer = async () => {
   // 播放地址为空已播放完毕
 
   const file = getCurrentLocalVideoFile()
-  const localFileExt = file ? resolveSourceExt(videoFile.value?.format, file.name) : ''
-  const shouldForceBackendStream = localFileExt === 'mkv'
 
   let blobUrl: string | null = null
   currentPlaySource.value = null
   browserCompatAttemptKey = null
   resetBrowserCompatState()
 
-  if (file && file.size > 0 && !shouldForceBackendStream) {
+  if (file && file.size > 0) {
 
     console.log('Using local file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
@@ -1157,7 +1324,7 @@ const initPlayer = async () => {
   } else {
 
     revokeCurrentBlobUrl()
-    console.log(shouldForceBackendStream ? 'Local MKV detected, fetching transcoded stream from backend...' : 'Local file not found, fetching from backend...')
+    console.log('Local file not found, fetching play source from backend...')
     try {
 
       const playSource = await videoStore.getVideoPlaySourceInfo(videoFile.value.id)
@@ -1172,7 +1339,7 @@ const initPlayer = async () => {
     } catch (error) {
 
       console.error('Failed to get play source from backend:', error)
-      if (shouldForceBackendStream && isBrowserCompatFallbackCandidate(file)) {
+      if (isBrowserCompatFallbackCandidate(file)) {
         try {
           const fallbackSource = await buildBrowserCompatPlaybackSource()
           if (destroyed || initId !== initSequence) return
@@ -1435,32 +1602,23 @@ const setupPlayerEvents = () => {
       })
 
       const localFile = getCurrentLocalVideoFile()
+      const fallbackSourceInput = getBrowserCompatSource(currentPlaySource.value?.playUrl)
       const canFallback = currentPlaySource.value?.sourceMode !== 'browser_compat'
-        && currentPlaySource.value?.sourceMode !== 'local_blob'
-        && isBrowserCompatFallbackCandidate(localFile)
+        && (
+          isBrowserCompatFallbackCandidate(localFile)
+          || (
+            currentPlaySource.value?.browserFallbackAllowed === true
+            && isBrowserCompatFallbackCandidate(fallbackSourceInput)
+          )
+        )
 
       if (canFallback) {
         try {
           const failedSourceLabel = resolvePlaySourceLabel(currentPlaySource.value)
-          const fallbackSource = await buildBrowserCompatPlaybackSource()
-          if (!player.value || !isPlayerUsable()) {
-            return
-          }
-          revokeCurrentBlobUrl()
-          currentBlobUrl.value = fallbackSource.blobUrl
-          videoUrl.value = fallbackSource.blobUrl
-          currentPlaySource.value = fallbackSource.sourceInfo
-          player.value.src({
-            src: fallbackSource.blobUrl,
-            type: 'video/mp4'
-          })
-          safeOne('canplay', () => {
-            if (!destroyed && player.value && isPlayerUsable()) {
-              player.value?.play()?.catch(() => {})
-            }
-          })
-          player.value.load()
-          message.warning(`服务端${failedSourceLabel}播放失败，已切换为浏览器端兼容播放`)
+          await switchPlayerToBrowserCompat(
+            currentPlaySource.value?.playUrl,
+            `${failedSourceLabel}播放失败，已切换为浏览器端兼容播放`
+          )
           return
         } catch (fallbackError) {
           console.error('Failed to switch to browser compatible source:', fallbackError)
@@ -1908,6 +2066,47 @@ onUnmounted(() => {
 
   padding: 0;
   margin: 0;
+}
+
+.player-browser-compat-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.player-browser-compat-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.player-browser-compat-status.is-browser-compat {
+  background: rgba(245, 166, 35, 0.18);
+  color: #ffd58a;
+}
+
+.player-browser-compat-status.is-local {
+  background: rgba(24, 160, 88, 0.18);
+  color: #8ee3b5;
+}
+
+.player-browser-compat-status.is-original {
+  background: rgba(64, 158, 255, 0.18);
+  color: #8ec5ff;
+}
+
+.player-browser-compat-tip {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .video-key-hint {
