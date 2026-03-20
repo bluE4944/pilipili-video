@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { VideoCollection, VideoFile, PlayRecord, BackendVideoPlayHistoryItem } from '@/types'
+import type { VideoCollection, VideoFile, PlayRecord, BackendVideoPlayHistoryItem, BackendVideoPlaySource } from '@/types'
 import { videoApi, playRecordApi } from '@/api/video'
 import { folderApi } from '@/api/folder'
 
@@ -190,14 +190,18 @@ export const useVideoStore = defineStore('video', () => {
     return null
   }
 
-  const getVideoPlayUrl = async (videoId: string): Promise<string> => {
+  const getVideoPlaySourceInfo = async (videoId: string): Promise<BackendVideoPlaySource> => {
     try {
-      const result = await videoApi.getVideoPlayUrl(videoId)
-      return result
+      return await videoApi.getVideoPlaySourceInfo(videoId)
     } catch (error) {
-      console.error('Failed to get video play URL:', error)
+      console.error('Failed to get video play source info:', error)
       throw error
     }
+  }
+
+  const getVideoPlayUrl = async (videoId: string): Promise<string> => {
+    const result = await getVideoPlaySourceInfo(videoId)
+    return result.playUrl || ''
   }
 
   loadCollections().catch(console.error)
@@ -220,6 +224,7 @@ export const useVideoStore = defineStore('video', () => {
     getNextVideo,
     uploadVideo,
     uploadVideos,
+    getVideoPlaySourceInfo,
     getVideoPlayUrl
   }
 })

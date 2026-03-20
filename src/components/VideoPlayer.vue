@@ -33,6 +33,16 @@
 
       ></video>
 
+      <div v-if="browserCompatProcessing" class="browser-compat-overlay">
+        <div class="browser-compat-card">
+          <div class="browser-compat-title">{{ browserCompatStatusText }}</div>
+          <div class="browser-compat-progress-track">
+            <div class="browser-compat-progress-fill" :style="{ width: `${browserCompatProgress}%` }"></div>
+          </div>
+          <div class="browser-compat-progress-text">{{ browserCompatProgress }}%</div>
+        </div>
+      </div>
+
     </div>
 
     <teleport v-if="playerOverlayTarget && danmakuEnabled" :to="playerOverlayTarget">
@@ -103,15 +113,16 @@ import videojs from 'video.js'
 
 import type Player from 'video.js/dist/types/player'
 
-import type { VideoCollection, VideoFile, PlayRecord } from '@/types'
+import type { BackendVideoPlaySource, VideoCollection, VideoFile, PlayRecord } from '@/types'
 
 import { useVideoStore } from '@/store/video'
 import { playRecordApi } from '@/api/video'
 
 import { useMessage } from 'naive-ui'
 
-import { getVideoBlobUrl, getVideoFile, revokeVideoBlobUrl, registerVideoFile } from '@/utils/videoFileManager'
+import { getVideoFile, revokeVideoBlobUrl, registerVideoFile } from '@/utils/videoFileManager'
 import { getErrorMessage } from '@/utils/error'
+import { createBrowserCompatibleMp4Url, getBrowserCompatFallbackReason, getBrowserCompatMaxSizeMb, isBrowserCompatFallbackCandidate } from '@/utils/browserVideoCompat'
 import { danmakuApi, type Danmaku } from '@/api/danmaku'
 
 
@@ -375,6 +386,12 @@ const videoFile = computed(() => props.collection.videos[currentVideoIndex.value
 const currentBlobUrl = ref<string | null>(null)
 
 const videoUrl = ref<string | null>(null)
+type PlayerSourceInfo = Omit<BackendVideoPlaySource, 'sourceMode'> & { sourceMode?: BackendVideoPlaySource['sourceMode'] | 'local_blob' }
+const currentPlaySource = ref<PlayerSourceInfo | null>(null)
+const browserCompatProcessing = ref(false)
+const browserCompatProgress = ref(0)
+const browserCompatStatusText = ref('')
+let browserCompatAttemptKey: string | null = null
 const keyHint = ref<{ text: string; icon: string; visible: boolean; percent: number | null }>({
   text: '',
   icon: '',
@@ -418,7 +435,7 @@ const isEditableTarget = (target: EventTarget | null) => {
 const togglePlay = () => {
   if (!player.value) return
   if (player.value.paused()) {
-    player.value.play().catch(() => {})
+    player.value?.play()?.catch(() => {})
   } else {
     player.value.pause()
   }
@@ -669,7 +686,7 @@ const handleTouchStart = (event: TouchEvent) => {
     if (!isTouching || isSeeking || !player.value) return
     if (!player.value.isFullscreen()) return
     longPressActive = true
-    touchStartPlaybackRate = player.value.playbackRate()
+    touchStartPlaybackRate = player.value.playbackRate() || 1
     player.value.playbackRate(3)
     showKeyHint('3倍速', '⏩')
   }, 450)
@@ -904,6 +921,110 @@ const resolveSourceType = (format?: string, url?: string) => {
 
 
 
+const revokeCurrentBlobUrl = () => {
+  if (!currentBlobUrl.value) return
+  try {
+    revokeVideoBlobUrl(currentBlobUrl.value)
+  } catch (error) {
+    console.warn('Error revoking current blob URL:', error)
+  }
+  currentBlobUrl.value = null
+}
+
+const resetBrowserCompatState = () => {
+  browserCompatProcessing.value = false
+  browserCompatProgress.value = 0
+  browserCompatStatusText.value = ''
+}
+
+const getCurrentLocalVideoFile = () => {
+  if (!videoFile.value) return null
+  const file = getVideoFile(videoFile.value.id)
+  return file instanceof File ? file : null
+}
+
+const resolveBrowserCompatReasonText = (reason: string) => {
+  switch (reason) {
+    case 'missing_local_file':
+      return '缺少本地视频文件，无法使用浏览器端兼容播放'
+    case 'unsupported_extension':
+      return '浏览器端兼容播放仅支持本地 MKV 文件'
+    case 'file_too_large':
+      return `文件超过 ${getBrowserCompatMaxSizeMb()}MB，已禁用浏览器端兼容播放`
+    default:
+      return reason || '浏览器端兼容播放不可用'
+  }
+}
+
+const resolveBrowserCompatStatusText = (status: string, progress: number) => {
+  switch (status) {
+    case 'loading_engine':
+      return '正在加载浏览器兼容引擎...'
+    case 'writing_input':
+      return '正在写入本地视频...'
+    case 'ready':
+      return '浏览器兼容播放源已就绪'
+    case 'transcoding':
+    default:
+      return `正在转为浏览器兼容 MP4（${progress}%）`
+  }
+}
+
+const resolvePlaySourceLabel = (source?: PlayerSourceInfo | null) => {
+  switch (source?.sourceMode) {
+    case 'compatible_mp4':
+      return '兼容 MP4 流'
+    case 'hls':
+      return 'HLS 兼容流'
+    case 'browser_compat':
+      return '浏览器兼容流'
+    case 'local_blob':
+      return '本地文件流'
+    default:
+      return '原始视频流'
+  }
+}
+
+const buildBrowserCompatPlaybackSource = async (): Promise<{ blobUrl: string; sourceInfo: PlayerSourceInfo }> => {
+  const file = getCurrentLocalVideoFile()
+  const reason = getBrowserCompatFallbackReason(file)
+  if (reason) {
+    throw new Error(resolveBrowserCompatReasonText(reason))
+  }
+
+  const attemptKey = `${videoFile.value?.id || ''}:${file?.size || 0}:${file?.lastModified || 0}`
+  if (browserCompatAttemptKey === attemptKey) {
+    throw new Error('当前视频已经尝试过浏览器端兼容播放')
+  }
+  browserCompatAttemptKey = attemptKey
+  browserCompatProcessing.value = true
+  browserCompatProgress.value = 0
+  browserCompatStatusText.value = '正在加载浏览器兼容引擎...'
+
+  try {
+    const blobUrl = await createBrowserCompatibleMp4Url(file as File, {
+      onProgress: (progress, status) => {
+        const percent = Math.max(1, Math.min(100, Math.round(progress * 100)))
+        browserCompatProgress.value = percent
+        browserCompatStatusText.value = resolveBrowserCompatStatusText(status, percent)
+      }
+    })
+    return {
+      blobUrl,
+      sourceInfo: {
+        playUrl: blobUrl,
+        sourceMode: 'browser_compat',
+        processMode: 'audio_transcode',
+        browserFallbackAllowed: false
+      }
+    }
+  } finally {
+    window.setTimeout(() => {
+      resetBrowserCompatState()
+    }, 150)
+  }
+}
+
 defineExpose({
 
   getCurrentTime
@@ -957,7 +1078,7 @@ const disposePlayer = () => {
       instance.inactivityTimeout = null
     }
     stopUserActivity()
-    player.value.off()
+    ;(player.value as any).off()
     if (!player.value.paused()) {
       player.value.pause()
     }
@@ -996,42 +1117,32 @@ const initPlayer = async () => {
 
   // 播放地址为空已播放完毕
 
-  let file = getVideoFile(videoFile.value.id)
+  const file = getCurrentLocalVideoFile()
   const localFileExt = file ? resolveSourceExt(videoFile.value?.format, file.name) : ''
   const shouldForceBackendStream = localFileExt === 'mkv'
 
   let blobUrl: string | null = null
+  currentPlaySource.value = null
+  browserCompatAttemptKey = null
+  resetBrowserCompatState()
 
-
-
-  if (file && file instanceof File && file.size > 0 && !shouldForceBackendStream) {
+  if (file && file.size > 0 && !shouldForceBackendStream) {
 
     console.log('Using local file:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)} MB)`)
 
-
-    if (currentBlobUrl.value) {
-
-      try {
-
-        revokeVideoBlobUrl(currentBlobUrl.value)
-
-      } catch (e) {
-
-        console.warn('Error revoking blob URL:', e)
-
-      }
-
-      currentBlobUrl.value = null
-
-    }
-
-
+    revokeCurrentBlobUrl()
 
     try {
 
       blobUrl = URL.createObjectURL(file)
 
       currentBlobUrl.value = blobUrl
+      currentPlaySource.value = {
+        playUrl: blobUrl,
+        sourceMode: 'local_blob',
+        processMode: 'none',
+        browserFallbackAllowed: false
+      }
 
       console.log('Created blob URL:', blobUrl.substring(0, 50) + '...')
     } catch (error) {
@@ -1045,28 +1156,45 @@ const initPlayer = async () => {
 
   } else {
 
+    revokeCurrentBlobUrl()
     console.log(shouldForceBackendStream ? 'Local MKV detected, fetching transcoded stream from backend...' : 'Local file not found, fetching from backend...')
     try {
 
-      const playUrl = await videoStore.getVideoPlayUrl(videoFile.value.id)
+      const playSource = await videoStore.getVideoPlaySourceInfo(videoFile.value.id)
       if (destroyed || initId !== initSequence) return
 
-      blobUrl = playUrl
+      blobUrl = playSource.playUrl || ''
 
-      videoUrl.value = playUrl
+      videoUrl.value = blobUrl
+      currentPlaySource.value = playSource
 
-      console.log('Got play URL from backend:', playUrl.substring(0, 50) + '...')
+      console.log('Got play source from backend:', playSource)
     } catch (error) {
 
-      console.error('Failed to get play URL from backend:', error)
-      message.error(getErrorMessage(error))
-
-      return
+      console.error('Failed to get play source from backend:', error)
+      if (shouldForceBackendStream && isBrowserCompatFallbackCandidate(file)) {
+        try {
+          const fallbackSource = await buildBrowserCompatPlaybackSource()
+          if (destroyed || initId !== initSequence) return
+          revokeCurrentBlobUrl()
+          blobUrl = fallbackSource.blobUrl
+          currentBlobUrl.value = blobUrl
+          videoUrl.value = blobUrl
+          currentPlaySource.value = fallbackSource.sourceInfo
+          message.warning('后端播放源获取失败，已切换为浏览器端兼容播放')
+        } catch (fallbackError) {
+          console.error('Failed to build browser compatible source:', fallbackError)
+          message.error(getErrorMessage(fallbackError))
+          return
+        }
+      } else {
+        message.error(getErrorMessage(error))
+        return
+      }
 
     }
 
   }
-
 
 
   if (!blobUrl) {
@@ -1122,7 +1250,7 @@ const initPlayer = async () => {
 
         try {
 
-          player.value.dispose()
+          player.value?.dispose()
 
         } catch (disposeError) {
 
@@ -1137,7 +1265,7 @@ const initPlayer = async () => {
         if (shouldAutoPlay) {
           safeOne('canplay', () => {
             if (!destroyed && player.value && isPlayerUsable()) {
-              player.value.play().catch(() => {})
+              player.value?.play()?.catch(() => {})
             }
           })
         }
@@ -1159,7 +1287,7 @@ const initPlayer = async () => {
 
       try {
 
-        player.value.dispose()
+        player.value?.dispose()
 
       } catch (disposeError) {
 
@@ -1216,7 +1344,10 @@ const initPlayer = async () => {
 
 
 
-    player.value.ready(async () => {
+    const currentPlayer = player.value
+    if (!currentPlayer) return
+
+    currentPlayer.ready(async () => {
 
       if (destroyed || !player.value || !videoFile.value || initId !== initSequence) return
 
@@ -1230,7 +1361,7 @@ const initPlayer = async () => {
 
 
 
-      playerOverlayTarget.value = player.value?.el() || null
+      playerOverlayTarget.value = (player.value?.el() as HTMLElement | null) || null
       setupPlayerEvents()
       requestPlayerResize()
       window.setTimeout(requestPlayerResize, 50)
@@ -1245,7 +1376,7 @@ const initPlayer = async () => {
 
         autoPlayNext.value = false
 
-        player.value.play().catch(() => {})
+        player.value?.play()?.catch(() => {})
 
       }
 
@@ -1281,7 +1412,7 @@ const setupPlayerEvents = () => {
 
   // 监听加载错误
 
-  player.value.on('error', () => {
+  player.value.on('error', async () => {
 
     const playerError = player.value?.error()
 
@@ -1289,7 +1420,7 @@ const setupPlayerEvents = () => {
     clearPendingPlayRecord()
     if (playerError) {
 
-      const errorMsg = playerError.message || playerError.code?.message || '未知错误'
+      const errorMsg = playerError.message || '未知错误'
 
       console.error('Error details:', {
         code: playerError.code,
@@ -1299,10 +1430,46 @@ const setupPlayerEvents = () => {
         fileFormat: videoFile.value?.format,
         fileExt: resolveSourceExt(videoFile.value?.format, player.value?.currentSrc?.()),
         currentSrc: player.value?.currentSrc?.(),
-        currentType: player.value?.currentType?.()
+        currentType: player.value?.currentType?.(),
+        playSource: currentPlaySource.value
       })
 
-      message.error(`播放错误：${errorMsg}`)
+      const localFile = getCurrentLocalVideoFile()
+      const canFallback = currentPlaySource.value?.sourceMode !== 'browser_compat'
+        && currentPlaySource.value?.sourceMode !== 'local_blob'
+        && isBrowserCompatFallbackCandidate(localFile)
+
+      if (canFallback) {
+        try {
+          const failedSourceLabel = resolvePlaySourceLabel(currentPlaySource.value)
+          const fallbackSource = await buildBrowserCompatPlaybackSource()
+          if (!player.value || !isPlayerUsable()) {
+            return
+          }
+          revokeCurrentBlobUrl()
+          currentBlobUrl.value = fallbackSource.blobUrl
+          videoUrl.value = fallbackSource.blobUrl
+          currentPlaySource.value = fallbackSource.sourceInfo
+          player.value.src({
+            src: fallbackSource.blobUrl,
+            type: 'video/mp4'
+          })
+          safeOne('canplay', () => {
+            if (!destroyed && player.value && isPlayerUsable()) {
+              player.value?.play()?.catch(() => {})
+            }
+          })
+          player.value.load()
+          message.warning(`服务端${failedSourceLabel}播放失败，已切换为浏览器端兼容播放`)
+          return
+        } catch (fallbackError) {
+          console.error('Failed to switch to browser compatible source:', fallbackError)
+          message.error(`播放错误：${errorMsg}；${getErrorMessage(fallbackError)}`)
+          return
+        }
+      }
+
+      message.error(`播放错误：${resolvePlaySourceLabel(currentPlaySource.value)}加载失败，${errorMsg}`)
 
     }
 
@@ -1318,6 +1485,7 @@ const setupPlayerEvents = () => {
   })
 
   // 监听元数据加载完成
+
   player.value.on('loadedmetadata', () => {
     console.log('Video metadata loaded, duration:', player.value?.duration())
     requestPlayerResize()
@@ -1394,6 +1562,8 @@ const setupPlayerEvents = () => {
   })
 
   // 全屏变化时自动匹配横竖屏
+
+
   player.value.on('fullscreenchange', () => {
     if (!player.value) return
     if (player.value.isFullscreen()) {
@@ -1418,6 +1588,7 @@ const setupPlayerEvents = () => {
 
 
 // 上报播放量（每个视频仅一次）
+
 const reportPlayCountOnce = async () => {
   if (!videoFile.value) return
   const videoId = String(videoFile.value.id || '')
@@ -1546,7 +1717,7 @@ watch(videoFile, async (newVideo, oldVideo) => {
     playCountReportingVideoId = null
 
     await nextTick()
-    // 延迟一点确保DOM更新完成
+    // 延迟一点确保 DOM 更新完成
     scheduleInitPlayer(100)
 
   }
@@ -1589,7 +1760,9 @@ onMounted(async () => {
 
   await nextTick()
 
-  // 等待DOM完全渲染
+  // 等待 DOM 完全渲染
+
+
 
   if (mountTimer) {
 
@@ -1664,22 +1837,15 @@ onBeforeUnmount(() => {
   }
 
 
-  // ??????
-
   savePlayRecord()
-
-  
-  // ??Blob URL
 
   if (currentBlobUrl.value) {
 
-    revokeVideoBlobUrl(currentBlobUrl.value)
-
-    currentBlobUrl.value = null
+    revokeCurrentBlobUrl()
 
   }
 
-  
+  resetBrowserCompatState()
   disposePlayer()
 
 })
@@ -1712,6 +1878,7 @@ onUnmounted(() => {
     window.cancelAnimationFrame(resizeRaf)
     resizeRaf = 0
   }
+  resetBrowserCompatState()
 
 })
 

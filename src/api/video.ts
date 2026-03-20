@@ -10,6 +10,7 @@ import type {
   BackendVideo,
   BackendVideoPlayHistoryItem,
   BackendPlayHistory,
+  BackendVideoPlaySource,
   PageResult
 } from '@/types'
 
@@ -284,15 +285,29 @@ export const videoApi = {
     })
   },
 
-  getVideoPlayUrl(videoId: string, expireSeconds?: number): Promise<string> {
-    return apiRequest.get<string>(`/api/video/play/url/${videoId}`, {
+  getVideoPlaySourceInfo(videoId: string, expireSeconds?: number): Promise<BackendVideoPlaySource> {
+    return apiRequest.get<BackendVideoPlaySource>(`/api/video/play/source/${videoId}`, {
       params: { expireSeconds }
-    }).then((url) => {
-      if (url && url.startsWith('/')) {
-        return `${API_BASE_URL}${url}`
+    }).then((info) => {
+      if (!info) {
+        return {
+          playUrl: '',
+          sourceMode: 'direct',
+          processMode: 'none',
+          browserFallbackAllowed: false
+        }
       }
-      return url
+      const playUrl = info.playUrl && info.playUrl.startsWith('/') ? `${API_BASE_URL}${info.playUrl}` : info.playUrl || ''
+      return {
+        ...info,
+        playUrl
+      }
     })
+  },
+
+  async getVideoPlayUrl(videoId: string, expireSeconds?: number): Promise<string> {
+    const info = await videoApi.getVideoPlaySourceInfo(videoId, expireSeconds)
+    return info.playUrl || ''
   }
 }
 

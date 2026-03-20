@@ -203,6 +203,13 @@ export interface BackendVideoPlayHistoryItem {
   video?: BackendVideo
 }
 
+export interface BackendVideoPlaySource {
+  playUrl?: string
+  sourceMode?: 'direct' | 'compatible_mp4' | 'hls' | 'browser_compat'
+  processMode?: 'none' | 'remux' | 'audio_transcode' | 'full_transcode'
+  browserFallbackAllowed?: boolean
+}
+
 export interface BackendComment {
   id?: BackendId
   videoId?: BackendId
