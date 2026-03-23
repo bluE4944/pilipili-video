@@ -463,7 +463,7 @@ const goToVideoDetail = (id: string) => {
   router.push({ name: 'videoDetail', params: { id } })
 }
 
-const goToVideoById = (id?: number) => {
+const goToVideoById = (id?: string | number) => {
   if (!id) return
   router.push({ name: 'videoDetail', params: { id: String(id) } })
 }

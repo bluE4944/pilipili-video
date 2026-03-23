@@ -1,5 +1,6 @@
 import { apiRequest } from '@/utils/api'
 import type {
+  BackendId,
   BackendDict,
   BackendDictItem,
   BackendUser,
@@ -21,7 +22,7 @@ export interface AdminUserPayload {
 }
 
 export interface AdminBatchVideoUpdatePayload {
-  videoIds: number[]
+  videoIds: BackendId[]
   title?: string
   categoryId?: number
   categoryName?: string
@@ -29,7 +30,7 @@ export interface AdminBatchVideoUpdatePayload {
 }
 
 export interface AdminBatchCollectionUpdatePayload {
-  collectionIds: number[]
+  collectionIds: BackendId[]
   title?: string
   description?: string
 }
@@ -45,7 +46,7 @@ export interface AdminCollectionPayload {
 }
 
 export interface AdminEpisodeUpdateItem {
-  id: number
+  id: BackendId
   episodeNumber?: string
   episodeName?: string
   sortOrder?: number
@@ -65,6 +66,47 @@ export interface AdminDictItemPayload {
   sortOrder?: number
   enabled?: number
   remark?: string
+}
+
+
+export type AdminTranscodeTargetType = 'video' | 'collection'
+export type AdminTranscodeOutputMode = 'replace_original' | 'switch_path_only'
+export type AdminTranscodeTaskStatus = 'queued' | 'running' | 'success' | 'partial_success' | 'failed'
+export type AdminTranscodeTaskItemStatus = 'queued' | 'running' | 'success' | 'skipped' | 'failed'
+
+export interface AdminCreateTranscodeTaskPayload {
+  targetType: AdminTranscodeTargetType
+  targetIds: BackendId[]
+  outputMode: AdminTranscodeOutputMode
+}
+
+export interface AdminTranscodeTaskItem {
+  index?: number
+  sourcePath?: string
+  outputPath?: string
+  status?: AdminTranscodeTaskItemStatus
+  progress?: number
+  message?: string
+}
+
+export interface AdminTranscodeTaskSummary {
+  taskId?: BackendId
+  targetType?: AdminTranscodeTargetType
+  outputMode?: AdminTranscodeOutputMode
+  status?: AdminTranscodeTaskStatus
+  totalFileCount?: number
+  successCount?: number
+  failedCount?: number
+  skippedCount?: number
+  currentFile?: string
+  currentFileProgress?: number
+  totalProgress?: number
+  createTime?: string
+  updateTime?: string
+}
+
+export interface AdminTranscodeTaskDetail extends AdminTranscodeTaskSummary {
+  items?: AdminTranscodeTaskItem[]
 }
 
 export const adminApi = {
@@ -97,11 +139,11 @@ export const adminApi = {
     return apiRequest.delete<void>(`/api/admin/users/${id}`)
   },
 
-  deleteUsers(ids: number[]): Promise<void> {
+  deleteUsers(ids: BackendId[]): Promise<void> {
     return apiRequest.delete<void>('/api/admin/users/batch', { data: ids })
   },
 
-  updateUserRoles(ids: number[], role: string, authorization?: string): Promise<void> {
+  updateUserRoles(ids: BackendId[], role: string, authorization?: string): Promise<void> {
     return apiRequest.put<void>('/api/admin/users/batch/role', ids, {
       params: { role, authorization }
     })
@@ -119,7 +161,7 @@ export const adminApi = {
     return apiRequest.get<PageResult<BackendVideo>>('/api/admin/videos/page', { params })
   },
 
-  updateVideoStatusBatch(ids: number[], status: number, auditRemark?: string): Promise<void> {
+  updateVideoStatusBatch(ids: BackendId[], status: number, auditRemark?: string): Promise<void> {
     return apiRequest.put<void>('/api/admin/videos/batch/status', ids, {
       params: { status, auditRemark }
     })
@@ -129,7 +171,7 @@ export const adminApi = {
     return apiRequest.put<void>('/api/admin/videos/batch/fields', payload)
   },
 
-  deleteVideos(ids: number[]): Promise<void> {
+  deleteVideos(ids: BackendId[]): Promise<void> {
     return apiRequest.delete<void>('/api/admin/videos/batch', { data: ids })
   },
 
@@ -153,7 +195,7 @@ export const adminApi = {
     return apiRequest.post<BackendVideoCollection>('/api/admin/collections', payload)
   },
 
-  updateCollectionEnabledBatch(ids: number[], enabled: number): Promise<void> {
+  updateCollectionEnabledBatch(ids: BackendId[], enabled: number): Promise<void> {
     return apiRequest.put<void>('/api/admin/collections/batch/enabled', ids, {
       params: { enabled }
     })
@@ -163,7 +205,7 @@ export const adminApi = {
     return apiRequest.put<void>('/api/admin/collections/batch/fields', payload)
   },
 
-  deleteCollections(ids: number[]): Promise<void> {
+  deleteCollections(ids: BackendId[]): Promise<void> {
     return apiRequest.delete<void>('/api/admin/collections/batch', { data: ids })
   },
 
@@ -177,7 +219,7 @@ export const adminApi = {
     return apiRequest.get<BackendVideoEpisode[]>(`/api/admin/collections/${collectionId}/episodes`)
   },
 
-  deleteCollectionEpisodes(collectionId: number | string, episodeIds: number[]): Promise<void> {
+  deleteCollectionEpisodes(collectionId: number | string, episodeIds: BackendId[]): Promise<void> {
     return apiRequest.delete<void>(`/api/admin/collections/${collectionId}/episodes/batch`, { data: episodeIds })
   },
 
@@ -187,6 +229,19 @@ export const adminApi = {
 
   updateCollectionEpisodes(collectionId: number | string, items: AdminEpisodeUpdateItem[]): Promise<void> {
     return apiRequest.put<void>(`/api/admin/collections/${collectionId}/episodes/batch`, items)
+  },
+
+
+  createTranscodeTask(payload: AdminCreateTranscodeTaskPayload): Promise<AdminTranscodeTaskSummary> {
+    return apiRequest.post<AdminTranscodeTaskSummary>('/api/admin/transcode/tasks', payload)
+  },
+
+  getTranscodeTasks(): Promise<AdminTranscodeTaskSummary[]> {
+    return apiRequest.get<AdminTranscodeTaskSummary[]>('/api/admin/transcode/tasks')
+  },
+
+  getTranscodeTaskDetail(taskId: number | string): Promise<AdminTranscodeTaskDetail> {
+    return apiRequest.get<AdminTranscodeTaskDetail>(`/api/admin/transcode/tasks/${taskId}`)
   },
 
   getDictPage(params?: {
@@ -215,7 +270,7 @@ export const adminApi = {
     return apiRequest.delete<void>(`/api/admin/dict/${dictId}`)
   },
 
-  deleteDicts(dictIds: number[]): Promise<void> {
+  deleteDicts(dictIds: BackendId[]): Promise<void> {
     return apiRequest.delete<void>('/api/admin/dict/batch', { data: dictIds })
   },
 
@@ -235,7 +290,7 @@ export const adminApi = {
     return apiRequest.delete<void>(`/api/admin/dict/items/${itemId}`)
   },
 
-  deleteDictItems(itemIds: number[]): Promise<void> {
+  deleteDictItems(itemIds: BackendId[]): Promise<void> {
     return apiRequest.delete<void>('/api/admin/dict/items/batch', { data: itemIds })
   }
 }

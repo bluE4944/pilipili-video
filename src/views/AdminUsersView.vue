@@ -106,7 +106,7 @@ import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, useMessage } from 'naive-ui'
 import { adminApi, type AdminUserPayload } from '@/api/admin'
 import { dictApi } from '@/api/dict'
-import type { BackendUser } from '@/types'
+import type { BackendId, BackendUser } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 
 const message = useMessage()
@@ -116,7 +116,7 @@ const users = ref<BackendUser[]>([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const selectedRowKeys = ref<Array<string | number>>([])
+const selectedRowKeys = ref<BackendId[]>([])
 
 const filters = reactive({
   userName: '',
@@ -150,8 +150,8 @@ const rowKey = (row: BackendUser) => row.id ?? row.userName ?? row.username ?? '
 
 const selectedIds = computed(() => {
   return selectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
 const tableScrollX = 1100
@@ -263,7 +263,7 @@ const handlePageSizeChange = (size: number) => {
   loadUsers()
 }
 
-const handleSelectionChange = (keys: Array<string | number>) => {
+const handleSelectionChange = (keys: BackendId[]) => {
   selectedRowKeys.value = keys
 }
 

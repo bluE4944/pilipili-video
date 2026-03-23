@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-view">
     <n-card>
       <n-space vertical :size="16">
@@ -21,6 +21,9 @@
             </n-button>
             <n-button :disabled="!selectedIds.length" @click="openBatchFieldsDialog(selectedIds)">
               批量更新字段
+            </n-button>
+            <n-button type="warning" :disabled="!selectedIds.length" @click="openTranscodeDialog">
+              批量转 MP4
             </n-button>
           </n-space>
         </n-space>
@@ -85,27 +88,38 @@
         </n-space>
       </template>
     </n-modal>
+
+    <AdminTranscodeTaskDialog
+      v-model:show="showTranscodeDialog"
+      :target-count="selectedIds.length"
+      target-type="video"
+      :submitting="creatingTranscodeTask"
+      @submit="handleCreateTranscodeTask"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NPopover, NTag, useMessage } from 'naive-ui'
-import { adminApi, type AdminBatchVideoUpdatePayload } from '@/api/admin'
-import type { BackendVideo } from '@/types'
+import { adminApi, type AdminBatchVideoUpdatePayload, type AdminTranscodeOutputMode } from '@/api/admin'
+import AdminTranscodeTaskDialog from '@/components/admin/TranscodeTaskDialog.vue'
+import type { BackendId, BackendVideo } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { resolveApiUrl } from '@/utils/api'
 import { getFallbackCover } from '@/utils/fallbackCover'
 
 const message = useMessage()
+const router = useRouter()
 
 const loading = ref(false)
 const videos = ref<BackendVideo[]>([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const selectedRowKeys = ref<Array<string | number>>([])
+const selectedRowKeys = ref<BackendId[]>([])
 
 const filters = reactive({
   title: '',
@@ -114,7 +128,7 @@ const filters = reactive({
 
 const statusOptions = [
   { label: '待审核', value: 0 },
-  { label: '已上线', value: 1 },
+  { label: '已上架', value: 1 },
   { label: '已下架', value: 2 },
   { label: '审核不通过', value: 3 }
 ]
@@ -124,7 +138,7 @@ const batchAuditRemark = ref('')
 
 const showFieldsDialog = ref(false)
 const fieldsDialogTitle = ref('批量更新字段')
-const fieldsTargetIds = ref<number[]>([])
+const fieldsTargetIds = ref<BackendId[]>([])
 const fieldsForm = reactive<AdminBatchVideoUpdatePayload>({
   videoIds: [],
   title: '',
@@ -133,12 +147,15 @@ const fieldsForm = reactive<AdminBatchVideoUpdatePayload>({
   tags: ''
 })
 
+const showTranscodeDialog = ref(false)
+const creatingTranscodeTask = ref(false)
+
 const rowKey = (row: BackendVideo) => row.id ?? ''
 
 const selectedIds = computed(() => {
   return selectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
 const tableScrollX = 1400
@@ -206,10 +223,7 @@ const columns = computed<DataTableColumns<BackendVideo>>(() => [
     title: '封面',
     key: 'cover',
     width: 110,
-    render: (row) =>
-      h('div', { class: 'cover-cell' }, [
-        renderCoverPreview(resolveCoverUrl(row), () => handleCoverUpload(row), isCoverUploading(row.id))
-      ])
+    render: (row) => h('div', { class: 'cover-cell' }, [renderCoverPreview(resolveCoverUrl(row), () => handleCoverUpload(row), isCoverUploading(row.id))])
   },
   { title: '标题', key: 'title', ellipsis: { tooltip: true }, render: (row) => row.title || '-' },
   {
@@ -229,7 +243,7 @@ const columns = computed<DataTableColumns<BackendVideo>>(() => [
       h('div', { class: 'action-group' }, [
         h(
           NButton,
-          { size: 'small', quaternary: true, type: 'primary', onClick: () => openBatchFieldsDialog([Number(row.id)]) },
+          { size: 'small', quaternary: true, type: 'primary', onClick: () => openBatchFieldsDialog([String(row.id ?? '')]) },
           { default: () => '编辑' }
         ),
         h(
@@ -277,18 +291,18 @@ const handlePageSizeChange = (size: number) => {
   loadVideos()
 }
 
-const handleSelectionChange = (keys: Array<string | number>) => {
+const handleSelectionChange = (keys: BackendId[]) => {
   selectedRowKeys.value = keys
 }
 
 const handleDelete = async (video: BackendVideo) => {
   if (!video.id) {
-    message.warning('视频ID无效')
+    message.warning('视频 ID 无效')
     return
   }
   if (!window.confirm('确认删除该视频吗？')) return
   try {
-    await adminApi.deleteVideos([Number(video.id)])
+    await adminApi.deleteVideos([video.id])
     message.success('删除成功')
     loadVideos()
   } catch (error) {
@@ -327,7 +341,7 @@ const handleBatchStatus = async () => {
   }
 }
 
-const openBatchFieldsDialog = (ids: number[]) => {
+const openBatchFieldsDialog = (ids: BackendId[]) => {
   if (!ids.length) return
   fieldsTargetIds.value = ids
   fieldsDialogTitle.value = ids.length > 1 ? `批量更新(${ids.length})` : '编辑视频'
@@ -339,6 +353,36 @@ const openBatchFieldsDialog = (ids: number[]) => {
     tags: ''
   })
   showFieldsDialog.value = true
+}
+
+const openTranscodeDialog = () => {
+  if (!selectedIds.value.length) {
+    message.warning('请选择视频')
+    return
+  }
+  showTranscodeDialog.value = true
+}
+
+const handleCreateTranscodeTask = async ({ outputMode }: { outputMode: AdminTranscodeOutputMode }) => {
+  if (!selectedIds.value.length) {
+    message.warning('请选择视频')
+    return
+  }
+  creatingTranscodeTask.value = true
+  try {
+    const task = await adminApi.createTranscodeTask({
+      targetType: 'video',
+      targetIds: selectedIds.value,
+      outputMode
+    })
+    message.success('转换任务已创建')
+    showTranscodeDialog.value = false
+    router.push({ name: 'adminTranscodeTasks', query: task.taskId ? { taskId: String(task.taskId) } : undefined })
+  } catch (error) {
+    message.error(getErrorMessage(error))
+  } finally {
+    creatingTranscodeTask.value = false
+  }
 }
 
 const handleFieldsSubmit = async () => {
@@ -401,7 +445,7 @@ const selectImageFile = () => {
 
 const handleCoverUpload = async (video: BackendVideo) => {
   if (!video.id && video.id !== 0) {
-    message.warning('视频ID无效')
+    message.warning('视频 ID 无效')
     return
   }
   const key = String(video.id)
@@ -409,17 +453,16 @@ const handleCoverUpload = async (video: BackendVideo) => {
   const file = await selectImageFile()
   if (!file) return
   uploadingCoverIds.value.add(key)
-  const messageKey = `upload-cover-${key}`
-  const loadingMessage = message.loading('正在上传封面...', { key: messageKey, duration: 0 })
+  const loadingMessage = message.loading('正在上传封面...', { duration: 0 })
   try {
     const updated = await adminApi.uploadVideoCover(video.id, file)
     if (updated?.coverUrl) {
       video.coverUrl = appendCoverTimestamp(updated.coverUrl)
     }
     await loadVideos()
-    message.success('封面已更新', { key: messageKey })
+    message.success('封面已更新')
   } catch (error) {
-    message.error(getErrorMessage(error), { key: messageKey })
+    message.error(getErrorMessage(error))
   } finally {
     loadingMessage?.destroy()
     uploadingCoverIds.value.delete(key)

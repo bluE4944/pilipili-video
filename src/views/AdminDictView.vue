@@ -133,7 +133,7 @@ import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NTag, useMessage } from 'naive-ui'
 import { adminApi, type AdminDictItemPayload, type AdminDictPayload } from '@/api/admin'
-import type { BackendDict, BackendDictItem } from '@/types'
+import type { BackendId, BackendDict, BackendDictItem } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 
 const message = useMessage()
@@ -143,7 +143,7 @@ const dicts = ref<BackendDict[]>([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const selectedRowKeys = ref<Array<string | number>>([])
+const selectedRowKeys = ref<BackendId[]>([])
 
 const filters = reactive({
   dictCode: '',
@@ -170,7 +170,7 @@ const showItemsDialog = ref(false)
 const currentDict = ref<BackendDict | null>(null)
 const items = ref<BackendDictItem[]>([])
 const itemsLoading = ref(false)
-const itemSelectedRowKeys = ref<Array<string | number>>([])
+const itemSelectedRowKeys = ref<BackendId[]>([])
 
 const showItemDialog = ref(false)
 const editingItem = ref<BackendDictItem | null>(null)
@@ -190,14 +190,14 @@ const itemRowKey = (row: BackendDictItem) => row.id ?? row.itemValue ?? ''
 
 const selectedIds = computed(() => {
   return selectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
 const selectedItemIds = computed(() => {
   return itemSelectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
 const tableScrollX = 900
@@ -352,11 +352,11 @@ const handlePageSizeChange = (size: number) => {
   loadDicts()
 }
 
-const handleSelectionChange = (keys: Array<string | number>) => {
+const handleSelectionChange = (keys: BackendId[]) => {
   selectedRowKeys.value = keys
 }
 
-const handleItemSelectionChange = (keys: Array<string | number>) => {
+const handleItemSelectionChange = (keys: BackendId[]) => {
   itemSelectedRowKeys.value = keys
 }
 

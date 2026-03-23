@@ -90,7 +90,7 @@ export interface BackendOrderItem {
 }
 
 export interface BackendUser {
-  id?: number
+  id?: BackendId
   userName?: string
   username?: string
   nikeName?: string
@@ -121,7 +121,7 @@ export interface LoginResult {
 }
 
 export interface BackendVideo {
-  id?: number
+  id?: BackendId
   title?: string
   description?: string
   coverUrl?: string
@@ -130,7 +130,7 @@ export interface BackendVideo {
   fileSize?: number
   format?: string
   tags?: string
-  categoryId?: number
+  categoryId?: BackendId
   categoryName?: string
   status?: number
   quality?: number
@@ -139,7 +139,7 @@ export interface BackendVideo {
   commentCount?: number
   collectCount?: number
   auditRemark?: string
-  userId?: number
+  userId?: BackendId
   userName?: string
   createTime?: string
   updateTime?: string
@@ -148,7 +148,7 @@ export interface BackendVideo {
 export type BackendId = number | string
 
 export interface BackendVideoCollection {
-  id?: number
+  id?: BackendId
   title?: string
   description?: string
   coverUrl?: string
@@ -170,9 +170,9 @@ export interface BackendVideoListItem {
 }
 
 export interface BackendVideoEpisode {
-  id?: number
-  collectionId?: number
-  videoId?: number
+  id?: BackendId
+  collectionId?: BackendId
+  videoId?: BackendId
   episodeName?: string
   episodeNumber?: string
   filePath?: string
@@ -185,9 +185,9 @@ export interface BackendVideoEpisode {
 }
 
 export interface BackendPlayHistory {
-  id?: number
-  videoId?: number
-  userId?: number
+  id?: BackendId
+  videoId?: BackendId
+  userId?: BackendId
   progress?: number
   playDuration?: number
   playbackRate?: number
@@ -238,16 +238,16 @@ export interface BackendDanmaku {
 }
 
 export interface BackendVideoCollect {
-  id?: number
-  videoId?: number
-  userId?: number
+  id?: BackendId
+  videoId?: BackendId
+  userId?: BackendId
   folderName?: string
   createTime?: string
   updateTime?: string
 }
 
 export interface BackendFolderConfig {
-  id?: number
+  id?: BackendId
   configName?: string
   folderPath?: string
   enabled?: number
@@ -261,7 +261,7 @@ export interface BackendFolderConfig {
 }
 
 export interface BackendSystemConfig {
-  id?: number
+  id?: BackendId
   configKey?: string
   configType?: number
   configValue?: string
@@ -271,7 +271,7 @@ export interface BackendSystemConfig {
 }
 
 export interface BackendDict {
-  id?: number
+  id?: BackendId
   dictCode?: string
   dictName?: string
   description?: string
@@ -282,7 +282,7 @@ export interface BackendDict {
 }
 
 export interface BackendDictItem {
-  id?: number
+  id?: BackendId
   dictCode?: string
   itemValue?: string
   itemLabel?: string

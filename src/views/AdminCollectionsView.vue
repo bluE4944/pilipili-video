@@ -4,31 +4,34 @@
       <n-space vertical :size="16">
         <n-space justify="space-between" align="center" :wrap="true">
           <n-space align="center" :wrap="true">
-            <n-input v-model:value="filters.title" placeholder="标题" clearable style="width: 200px" />
+            <n-input v-model:value="filters.title" placeholder="??" clearable style="width: 200px" />
             <n-select
               v-model:value="filters.collectionType"
-              placeholder="类型"
+              placeholder="??"
               clearable
               style="width: 160px"
               :options="collectionTypeOptions"
             />
             <n-select
               v-model:value="filters.enabled"
-              placeholder="启用状态"
+              placeholder="????"
               clearable
               style="width: 160px"
               :options="enabledOptions"
             />
-            <n-button type="primary" @click="handleSearch">查询</n-button>
-            <n-button @click="handleReset">重置</n-button>
+            <n-button type="primary" @click="handleSearch">??</n-button>
+            <n-button @click="handleReset">??</n-button>
           </n-space>
           <n-space align="center">
-            <n-button type="primary" @click="openCreateDialog">新建合集</n-button>
+            <n-button type="primary" @click="openCreateDialog">????</n-button>
             <n-button type="error" :disabled="!selectedIds.length" @click="handleBatchDelete">
-              批量删除
+              ????
             </n-button>
             <n-button :disabled="!selectedIds.length" @click="openBatchFieldsDialog(selectedIds)">
-              批量更新字段
+              ??????
+            </n-button>
+            <n-button type="warning" :disabled="!selectedIds.length" @click="openTranscodeDialog">
+              ??? MP4
             </n-button>
           </n-space>
         </n-space>
@@ -36,13 +39,13 @@
         <n-space align="center" :wrap="true">
           <n-select
             v-model:value="batchEnabled"
-            placeholder="批量启用状态"
+            placeholder="??????"
             clearable
             style="width: 160px"
             :options="enabledOptions"
           />
-          <n-button :disabled="!selectedIds.length" @click="handleBatchEnabled">批量设置启用</n-button>
-          <n-text depth="3">已选 {{ selectedIds.length }} 条</n-text>
+          <n-button :disabled="!selectedIds.length" @click="handleBatchEnabled">??????</n-button>
+          <n-text depth="3">?? {{ selectedIds.length }} ?</n-text>
         </n-space>
 
         <n-data-table
@@ -72,19 +75,98 @@
 
     <n-modal v-model:show="showFieldsDialog" preset="dialog" :title="fieldsDialogTitle">
       <n-form :model="fieldsForm">
-        <n-form-item label="标题">
-          <n-input v-model:value="fieldsForm.title" placeholder="标题" />
+        <n-form-item label="??">
+          <n-input v-model:value="fieldsForm.title" placeholder="??" />
         </n-form-item>
-        <n-form-item label="描述">
-          <n-input v-model:value="fieldsForm.description" type="textarea" placeholder="描述" />
+        <n-form-item label="??">
+          <n-input v-model:value="fieldsForm.description" type="textarea" placeholder="??" />
         </n-form-item>
       </n-form>
       <template #action>
         <n-space>
-          <n-button @click="showFieldsDialog = false">取消</n-button>
-          <n-button type="primary" @click="handleFieldsSubmit">保存</n-button>
+          <n-button @click="showFieldsDialog = false">??</n-button>
+          <n-button type="primary" @click="handleFieldsSubmit">??</n-button>
         </n-space>
       </template>
+    </n-modal>
+
+    <n-modal v-model:show="showCreateDialog" preset="dialog" title="????">
+      <n-form :model="createForm">
+        <n-form-item label="??">
+          <n-input v-model:value="createForm.title" placeholder="???????" />
+        </n-form-item>
+        <n-form-item label="??">
+          <n-input v-model:value="createForm.description" type="textarea" placeholder="????(??)" />
+        </n-form-item>
+        <n-form-item label="??">
+          <n-select v-model:value="createForm.collectionType" :options="collectionTypeOptions" />
+        </n-form-item>
+        <n-form-item label="??">
+          <n-select v-model:value="createForm.enabled" :options="enabledOptions" />
+        </n-form-item>
+        <n-form-item label="???">
+          <n-input v-model:value="createForm.sourceFolderPath" placeholder="??????(??)" />
+        </n-form-item>
+        <n-form-item label="??">
+          <n-space align="center">
+            <n-button size="small" @click="handleSelectCreateCover">????</n-button>
+            <n-button v-if="createCoverFile" size="small" @click="clearCreateCover">??</n-button>
+            <img v-if="createCoverPreview" class="cover-preview-small" :src="createCoverPreview" alt="????" />
+          </n-space>
+        </n-form-item>
+      </n-form>
+      <template #action>
+        <n-space>
+          <n-button @click="showCreateDialog = false">??</n-button>
+          <n-button type="primary" :loading="creatingCollection" @click="handleCreateCollection">??</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
+    <n-modal v-model:show="showEpisodesDialog" preset="card" title="??????" style="width: 1300px">
+      <n-space vertical :size="12">
+        <n-space justify="space-between" align="center" :wrap="true">
+          <n-text strong>???{{ currentCollection?.title || '-' }}</n-text>
+          <n-space align="center" :wrap="true">
+            <n-button size="small" @click="applySortByEpisodeNumber">?????</n-button>
+            <n-button size="small" type="warning" :disabled="!selectedEpisodeIds.length" @click="() => handleRemoveEpisodes()">
+              ????
+            </n-button>
+            <n-button size="small" type="primary" @click="handleSaveEpisodes">????</n-button>
+            <n-button size="small" @click="loadEpisodes">??</n-button>
+          </n-space>
+        </n-space>
+        <n-data-table
+          :columns="episodeColumns"
+          :data="pagedEpisodes"
+          :loading="episodesLoading"
+          :row-key="episodeRowKey"
+          :checked-row-keys="episodeSelectedRowKeys"
+          :scroll-x="episodeTableScrollX"
+          @update:checked-row-keys="handleEpisodeSelectionChange"
+        />
+        <n-space justify="end">
+          <n-pagination
+            v-model:page="episodePage"
+            v-model:page-size="episodePageSize"
+            :item-count="editableEpisodes.length"
+            show-size-picker
+            :page-sizes="[10, 20, 50]"
+            @update:page-size="handleEpisodePageSizeChange"
+          />
+        </n-space>
+      </n-space>
+    </n-modal>
+
+    <AdminTranscodeTaskDialog
+      v-model:show="showTranscodeDialog"
+      :target-count="selectedIds.length"
+      target-type="collection"
+      :submitting="creatingTranscodeTask"
+      @submit="handleCreateTranscodeTask"
+    />
+  </div>
+</template>
     </n-modal>
 
     <n-modal v-model:show="showCreateDialog" preset="dialog" title="新建合集">
@@ -126,7 +208,7 @@
           <n-text strong>合集：{{ currentCollection?.title || '-' }}</n-text>
           <n-space align="center" :wrap="true">
             <n-button size="small" @click="applySortByEpisodeNumber">按集数排序</n-button>
-            <n-button size="small" type="warning" :disabled="!selectedEpisodeIds.length" @click="handleRemoveEpisodes">
+            <n-button size="small" type="warning" :disabled="!selectedEpisodeIds.length" @click="() => handleRemoveEpisodes()">
               移除所选
             </n-button>
             <n-button size="small" type="primary" @click="handleSaveEpisodes">保存调整</n-button>
@@ -137,7 +219,7 @@
           :columns="episodeColumns"
           :data="pagedEpisodes"
           :loading="episodesLoading"
-          :row-key="(row) => row.id ?? row.videoId ?? ''"
+          :row-key="episodeRowKey"
           :checked-row-keys="episodeSelectedRowKeys"
           :scroll-x="episodeTableScrollX"
           @update:checked-row-keys="handleEpisodeSelectionChange"
@@ -161,8 +243,9 @@
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import type { DataTableColumns } from 'naive-ui'
 import { NButton, NInput, NInputNumber, NPopover, NTag, useMessage } from 'naive-ui'
-import { adminApi, type AdminBatchCollectionUpdatePayload, type AdminCollectionPayload, type AdminEpisodeUpdateItem } from '@/api/admin'
-import type { BackendVideoCollection, BackendVideoEpisode } from '@/types'
+import { adminApi, type AdminBatchCollectionUpdatePayload, type AdminCollectionPayload, type AdminEpisodeUpdateItem, type AdminTranscodeOutputMode } from '@/api/admin'
+import AdminTranscodeTaskDialog from '@/components/admin/TranscodeTaskDialog.vue'
+import type { BackendId, BackendVideoCollection, BackendVideoEpisode } from '@/types'
 import { getErrorMessage } from '@/utils/error'
 import { useRouter } from 'vue-router'
 import { resolveApiUrl } from '@/utils/api'
@@ -176,7 +259,7 @@ const collections = ref<BackendVideoCollection[]>([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const selectedRowKeys = ref<Array<string | number>>([])
+const selectedRowKeys = ref<BackendId[]>([])
 
 const filters = reactive({
   title: '',
@@ -198,7 +281,7 @@ const batchEnabled = ref<number | null>(null)
 
 const showFieldsDialog = ref(false)
 const fieldsDialogTitle = ref('批量更新字段')
-const fieldsTargetIds = ref<number[]>([])
+const fieldsTargetIds = ref<BackendId[]>([])
 const fieldsForm = reactive<AdminBatchCollectionUpdatePayload>({
   collectionIds: [],
   title: '',
@@ -209,7 +292,7 @@ const showEpisodesDialog = ref(false)
 const episodesLoading = ref(false)
 const currentCollection = ref<BackendVideoCollection | null>(null)
 const editableEpisodes = ref<BackendVideoEpisode[]>([])
-const episodeSelectedRowKeys = ref<Array<string | number>>([])
+const episodeSelectedRowKeys = ref<BackendId[]>([])
 const episodePage = ref(1)
 const episodePageSize = ref(10)
 
@@ -225,12 +308,16 @@ const createCoverFile = ref<File | null>(null)
 const createCoverPreview = ref('')
 const creatingCollection = ref(false)
 
+const showTranscodeDialog = ref(false)
+const creatingTranscodeTask = ref(false)
+
 const rowKey = (row: BackendVideoCollection) => row.id ?? ''
+const episodeRowKey = (row: BackendVideoEpisode) => row.id ?? row.videoId ?? ''
 
 const selectedIds = computed(() => {
   return selectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
 const tableScrollX = 1200
@@ -320,7 +407,7 @@ const columns = computed<DataTableColumns<BackendVideoCollection>>(() => [
         ),
         h(
           NButton,
-          { size: 'small', quaternary: true, type: 'primary', onClick: () => openBatchFieldsDialog([Number(row.id)]) },
+          { size: 'small', quaternary: true, type: 'primary', onClick: () => openBatchFieldsDialog([String(row.id ?? '')]) },
           { default: () => '编辑' }
         ),
         h(
@@ -386,8 +473,8 @@ const episodeColumns = computed<DataTableColumns<BackendVideoEpisode>>(() => [
     key: 'actions',
     width: 160,
     render: (row) => {
-      const episodeId = row.id !== undefined && row.id !== null ? Number(row.id) : Number.NaN
-      const canRemove = !Number.isNaN(episodeId)
+      const episodeId = row.id !== undefined && row.id !== null ? String(row.id) : ''
+      const canRemove = !!episodeId
       return h('div', { class: 'action-group' }, [
         h(
           NButton,
@@ -454,7 +541,7 @@ const handlePageSizeChange = (size: number) => {
   loadCollections()
 }
 
-const handleSelectionChange = (keys: Array<string | number>) => {
+const handleSelectionChange = (keys: BackendId[]) => {
   selectedRowKeys.value = keys
 }
 
@@ -465,7 +552,7 @@ const handleDelete = async (collection: BackendVideoCollection) => {
   }
   if (!window.confirm('确认删除该合集吗？')) return
   try {
-    await adminApi.deleteCollections([Number(collection.id)])
+    await adminApi.deleteCollections([collection.id])
     message.success('删除成功')
     loadCollections()
   } catch (error) {
@@ -605,24 +692,23 @@ const handleCollectionCoverUpload = async (collection: BackendVideoCollection) =
   const file = await selectImageFile()
   if (!file) return
   uploadingCoverIds.value.add(key)
-  const messageKey = `upload-cover-${key}`
-  const loadingMessage = message.loading('正在上传封面...', { key: messageKey, duration: 0 })
+  const loadingMessage = message.loading('正在上传封面...', { duration: 0 })
   try {
     const updated = await adminApi.uploadCollectionCover(collection.id, file)
     if (updated?.coverUrl) {
       collection.coverUrl = appendCoverTimestamp(updated.coverUrl)
     }
     await loadCollections()
-    message.success('封面已更新', { key: messageKey })
+    message.success('封面已更新')
   } catch (error) {
-    message.error(getErrorMessage(error), { key: messageKey })
+    message.error(getErrorMessage(error))
   } finally {
     loadingMessage?.destroy()
     uploadingCoverIds.value.delete(key)
   }
 }
 
-const openBatchFieldsDialog = (ids: number[]) => {
+const openBatchFieldsDialog = (ids: BackendId[]) => {
   if (!ids.length) return
   fieldsTargetIds.value = ids
   fieldsDialogTitle.value = ids.length > 1 ? `批量更新(${ids.length})` : '编辑合集'
@@ -688,11 +774,11 @@ const pagedEpisodes = computed(() => {
 
 const selectedEpisodeIds = computed(() => {
   return episodeSelectedRowKeys.value
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value))
+    .filter((value) => value !== undefined && value !== null && String(value) !== '')
+    .map((value) => String(value))
 })
 
-const handleEpisodeSelectionChange = (keys: Array<string | number>) => {
+const handleEpisodeSelectionChange = (keys: BackendId[]) => {
   episodeSelectedRowKeys.value = keys
 }
 
@@ -701,7 +787,7 @@ const handleEpisodePageSizeChange = (size: number) => {
   episodePage.value = 1
 }
 
-const handleRemoveEpisodes = async (ids?: number[]) => {
+const handleRemoveEpisodes = async (ids?: BackendId[]) => {
   const collectionId = currentCollection.value?.id
   if (!collectionId) return
   const targetIds = ids && ids.length ? ids : selectedEpisodeIds.value
@@ -734,15 +820,17 @@ const handleSaveEpisodes = async () => {
   if (!collectionId) return
   const targetIds = selectedEpisodeIds.value.length
     ? selectedEpisodeIds.value
-    : editableEpisodes.value.map((item) => Number(item.id)).filter((value) => !Number.isNaN(value))
+    : editableEpisodes.value
+      .map((item) => item.id)
+      .filter((value): value is BackendId => value !== undefined && value !== null && String(value) !== '')
   if (!targetIds.length) {
     message.warning('请选择分集')
     return
   }
   const items: AdminEpisodeUpdateItem[] = editableEpisodes.value
-    .filter((item) => item.id && targetIds.includes(Number(item.id)))
+    .filter((item) => item.id !== undefined && item.id !== null && targetIds.includes(String(item.id)))
     .map((item) => {
-      const payload: AdminEpisodeUpdateItem = { id: Number(item.id) }
+      const payload: AdminEpisodeUpdateItem = { id: item.id as BackendId }
       if (item.episodeNumber !== undefined && item.episodeNumber !== null) {
         payload.episodeNumber = item.episodeNumber
       }
@@ -767,7 +855,7 @@ const handleSaveEpisodes = async () => {
   }
 }
 
-const goToVideoDetail = (videoId?: number) => {
+const goToVideoDetail = (videoId?: BackendId) => {
   if (!videoId) return
   router.push({ name: 'videoDetail', params: { id: String(videoId) } })
 }
@@ -785,6 +873,37 @@ const parseEpisodeNumber = (value?: string) => {
   const match = value.match(/\d+/)
   if (!match) return Number.MAX_SAFE_INTEGER
   return Number(match[0])
+}
+
+
+const openTranscodeDialog = () => {
+  if (!selectedIds.value.length) {
+    message.warning('?????')
+    return
+  }
+  showTranscodeDialog.value = true
+}
+
+const handleCreateTranscodeTask = async ({ outputMode }: { outputMode: AdminTranscodeOutputMode }) => {
+  if (!selectedIds.value.length) {
+    message.warning('?????')
+    return
+  }
+  creatingTranscodeTask.value = true
+  try {
+    const task = await adminApi.createTranscodeTask({
+      targetType: 'collection',
+      targetIds: selectedIds.value,
+      outputMode
+    })
+    message.success('???????')
+    showTranscodeDialog.value = false
+    router.push({ name: 'adminTranscodeTasks', query: task.taskId ? { taskId: String(task.taskId) } : undefined })
+  } catch (error) {
+    message.error(getErrorMessage(error))
+  } finally {
+    creatingTranscodeTask.value = false
+  }
 }
 
 onMounted(() => {
