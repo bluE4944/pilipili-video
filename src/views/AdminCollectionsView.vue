@@ -4,34 +4,34 @@
       <n-space vertical :size="16">
         <n-space justify="space-between" align="center" :wrap="true">
           <n-space align="center" :wrap="true">
-            <n-input v-model:value="filters.title" placeholder="??" clearable style="width: 200px" />
+            <n-input v-model:value="filters.title" placeholder="标题" clearable style="width: 200px" />
             <n-select
               v-model:value="filters.collectionType"
-              placeholder="??"
+              placeholder="类型"
               clearable
               style="width: 160px"
               :options="collectionTypeOptions"
             />
             <n-select
               v-model:value="filters.enabled"
-              placeholder="????"
+              placeholder="启用状态"
               clearable
               style="width: 160px"
               :options="enabledOptions"
             />
-            <n-button type="primary" @click="handleSearch">??</n-button>
-            <n-button @click="handleReset">??</n-button>
+            <n-button type="primary" @click="handleSearch">查询</n-button>
+            <n-button @click="handleReset">重置</n-button>
           </n-space>
           <n-space align="center">
-            <n-button type="primary" @click="openCreateDialog">????</n-button>
+            <n-button type="primary" @click="openCreateDialog">新建合集</n-button>
             <n-button type="error" :disabled="!selectedIds.length" @click="handleBatchDelete">
-              ????
+              批量删除
             </n-button>
             <n-button :disabled="!selectedIds.length" @click="openBatchFieldsDialog(selectedIds)">
-              ??????
+              批量更新字段
             </n-button>
             <n-button type="warning" :disabled="!selectedIds.length" @click="openTranscodeDialog">
-              ??? MP4
+              批量转 MP4
             </n-button>
           </n-space>
         </n-space>
@@ -39,13 +39,13 @@
         <n-space align="center" :wrap="true">
           <n-select
             v-model:value="batchEnabled"
-            placeholder="??????"
+            placeholder="批量启用状态"
             clearable
             style="width: 160px"
             :options="enabledOptions"
           />
-          <n-button :disabled="!selectedIds.length" @click="handleBatchEnabled">??????</n-button>
-          <n-text depth="3">?? {{ selectedIds.length }} ?</n-text>
+          <n-button :disabled="!selectedIds.length" @click="handleBatchEnabled">批量设置启用</n-button>
+          <n-text depth="3">已选 {{ selectedIds.length }} 条</n-text>
         </n-space>
 
         <n-data-table
@@ -75,98 +75,19 @@
 
     <n-modal v-model:show="showFieldsDialog" preset="dialog" :title="fieldsDialogTitle">
       <n-form :model="fieldsForm">
-        <n-form-item label="??">
-          <n-input v-model:value="fieldsForm.title" placeholder="??" />
+        <n-form-item label="标题">
+          <n-input v-model:value="fieldsForm.title" placeholder="标题" />
         </n-form-item>
-        <n-form-item label="??">
-          <n-input v-model:value="fieldsForm.description" type="textarea" placeholder="??" />
-        </n-form-item>
-      </n-form>
-      <template #action>
-        <n-space>
-          <n-button @click="showFieldsDialog = false">??</n-button>
-          <n-button type="primary" @click="handleFieldsSubmit">??</n-button>
-        </n-space>
-      </template>
-    </n-modal>
-
-    <n-modal v-model:show="showCreateDialog" preset="dialog" title="????">
-      <n-form :model="createForm">
-        <n-form-item label="??">
-          <n-input v-model:value="createForm.title" placeholder="???????" />
-        </n-form-item>
-        <n-form-item label="??">
-          <n-input v-model:value="createForm.description" type="textarea" placeholder="????(??)" />
-        </n-form-item>
-        <n-form-item label="??">
-          <n-select v-model:value="createForm.collectionType" :options="collectionTypeOptions" />
-        </n-form-item>
-        <n-form-item label="??">
-          <n-select v-model:value="createForm.enabled" :options="enabledOptions" />
-        </n-form-item>
-        <n-form-item label="???">
-          <n-input v-model:value="createForm.sourceFolderPath" placeholder="??????(??)" />
-        </n-form-item>
-        <n-form-item label="??">
-          <n-space align="center">
-            <n-button size="small" @click="handleSelectCreateCover">????</n-button>
-            <n-button v-if="createCoverFile" size="small" @click="clearCreateCover">??</n-button>
-            <img v-if="createCoverPreview" class="cover-preview-small" :src="createCoverPreview" alt="????" />
-          </n-space>
+        <n-form-item label="描述">
+          <n-input v-model:value="fieldsForm.description" type="textarea" placeholder="描述" />
         </n-form-item>
       </n-form>
       <template #action>
         <n-space>
-          <n-button @click="showCreateDialog = false">??</n-button>
-          <n-button type="primary" :loading="creatingCollection" @click="handleCreateCollection">??</n-button>
+          <n-button @click="showFieldsDialog = false">取消</n-button>
+          <n-button type="primary" @click="handleFieldsSubmit">保存</n-button>
         </n-space>
       </template>
-    </n-modal>
-
-    <n-modal v-model:show="showEpisodesDialog" preset="card" title="??????" style="width: 1300px">
-      <n-space vertical :size="12">
-        <n-space justify="space-between" align="center" :wrap="true">
-          <n-text strong>???{{ currentCollection?.title || '-' }}</n-text>
-          <n-space align="center" :wrap="true">
-            <n-button size="small" @click="applySortByEpisodeNumber">?????</n-button>
-            <n-button size="small" type="warning" :disabled="!selectedEpisodeIds.length" @click="() => handleRemoveEpisodes()">
-              ????
-            </n-button>
-            <n-button size="small" type="primary" @click="handleSaveEpisodes">????</n-button>
-            <n-button size="small" @click="loadEpisodes">??</n-button>
-          </n-space>
-        </n-space>
-        <n-data-table
-          :columns="episodeColumns"
-          :data="pagedEpisodes"
-          :loading="episodesLoading"
-          :row-key="episodeRowKey"
-          :checked-row-keys="episodeSelectedRowKeys"
-          :scroll-x="episodeTableScrollX"
-          @update:checked-row-keys="handleEpisodeSelectionChange"
-        />
-        <n-space justify="end">
-          <n-pagination
-            v-model:page="episodePage"
-            v-model:page-size="episodePageSize"
-            :item-count="editableEpisodes.length"
-            show-size-picker
-            :page-sizes="[10, 20, 50]"
-            @update:page-size="handleEpisodePageSizeChange"
-          />
-        </n-space>
-      </n-space>
-    </n-modal>
-
-    <AdminTranscodeTaskDialog
-      v-model:show="showTranscodeDialog"
-      :target-count="selectedIds.length"
-      target-type="collection"
-      :submitting="creatingTranscodeTask"
-      @submit="handleCreateTranscodeTask"
-    />
-  </div>
-</template>
     </n-modal>
 
     <n-modal v-model:show="showCreateDialog" preset="dialog" title="新建合集">
@@ -236,6 +157,14 @@
         </n-space>
       </n-space>
     </n-modal>
+
+    <AdminTranscodeTaskDialog
+      v-model:show="showTranscodeDialog"
+      :target-count="selectedIds.length"
+      target-type="collection"
+      :submitting="creatingTranscodeTask"
+      @submit="handleCreateTranscodeTask"
+    />
   </div>
 </template>
 
@@ -878,7 +807,7 @@ const parseEpisodeNumber = (value?: string) => {
 
 const openTranscodeDialog = () => {
   if (!selectedIds.value.length) {
-    message.warning('?????')
+    message.warning('请选择合集')
     return
   }
   showTranscodeDialog.value = true
@@ -886,7 +815,7 @@ const openTranscodeDialog = () => {
 
 const handleCreateTranscodeTask = async ({ outputMode }: { outputMode: AdminTranscodeOutputMode }) => {
   if (!selectedIds.value.length) {
-    message.warning('?????')
+    message.warning('请选择合集')
     return
   }
   creatingTranscodeTask.value = true
@@ -896,7 +825,7 @@ const handleCreateTranscodeTask = async ({ outputMode }: { outputMode: AdminTran
       targetIds: selectedIds.value,
       outputMode
     })
-    message.success('???????')
+    message.success('转换任务已创建')
     showTranscodeDialog.value = false
     router.push({ name: 'adminTranscodeTasks', query: task.taskId ? { taskId: String(task.taskId) } : undefined })
   } catch (error) {

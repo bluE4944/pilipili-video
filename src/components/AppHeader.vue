@@ -77,44 +77,21 @@ const isManager = computed(() => userStore.currentUser?.role === 'manage')
 const canManage = computed(() => isAdmin.value || isManager.value)
 
 const baseMenuOptions = [
-  {
-    label: '首页',
-    key: 'home'
-  },
-  {
-    label: '视频',
-    key: 'video'
-  },
-  {
-    label: '博客',
-    key: 'blog'
-  },
-  {
-    label: '设置',
-    key: 'settings'
-  }
+  { label: '首页', key: 'home' },
+  { label: '视频', key: 'video' },
+  { label: '博客', key: 'blog' },
+  { label: '设置', key: 'settings' }
 ]
 
 const manageMenuOptions = [
-  {
-    label: '用户管理',
-    key: 'adminUsers'
-  },
-  {
-    label: '视频管理',
-    key: 'adminVideos'
-  },
-  {
-    label: '合集管理',
-    key: 'adminCollections'
-  }
+  { label: '用户管理', key: 'adminUsers' },
+  { label: '视频管理', key: 'adminVideos' },
+  { label: '合集管理', key: 'adminCollections' },
+  { label: '转换任务', key: 'adminTranscodeTasks' }
 ]
 
 const adminOnlyMenuOptions = [
-  {
-    label: '字典管理',
-    key: 'adminDict'
-  }
+  { label: '字典管理', key: 'adminDict' }
 ]
 
 const menuOptions = computed(() => {
@@ -129,25 +106,13 @@ const menuOptions = computed(() => {
 const userOptions = computed(() => {
   if (userStore.currentUser && !userStore.currentUser.id.startsWith('guest_')) {
     return [
-      {
-        label: '个人信息管理',
-        key: 'profile'
-      },
-      {
-        label: '退出登录',
-        key: 'logout'
-      }
+      { label: '个人信息管理', key: 'profile' },
+      { label: '退出登录', key: 'logout' }
     ]
   }
   return [
-    {
-      label: '登录',
-      key: 'login'
-    },
-    {
-      label: '注册',
-      key: 'register'
-    }
+    { label: '登录', key: 'login' },
+    { label: '注册', key: 'register' }
   ]
 })
 
