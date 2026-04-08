@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="header-container">
     <div class="header-left">
       <router-link to="/" class="logo-link">
@@ -91,6 +91,7 @@ const manageMenuOptions = [
 ]
 
 const adminOnlyMenuOptions = [
+  { label: '下载管理', key: 'adminDownloadTasks' },
   { label: '字典管理', key: 'adminDict' }
 ]
 
@@ -104,7 +105,7 @@ const menuOptions = computed(() => {
 })
 
 const userOptions = computed(() => {
-  if (userStore.currentUser && !userStore.currentUser.id.startsWith('guest_')) {
+  if (userStore.currentUser && !String(userStore.currentUser.id || '').startsWith('guest_')) {
     return [
       { label: '个人信息管理', key: 'profile' },
       { label: '退出登录', key: 'logout' }

@@ -109,6 +109,51 @@ export interface AdminTranscodeTaskDetail extends AdminTranscodeTaskSummary {
   items?: AdminTranscodeTaskItem[]
 }
 
+export type AdminDownloadTaskStatus = 'queued' | 'downloading' | 'paused' | 'completed' | 'failed'
+export type AdminDownloadAutoImportStatus = 'pending' | 'running' | 'success' | 'failed'
+export type AdminDownloadSourceType = 'magnet' | 'torrent'
+
+export interface AdminCreateDownloadMagnetTaskPayload {
+  magnetUrl: string
+  folderConfigId: BackendId
+  addPaused?: boolean
+}
+
+export interface AdminDownloadTask {
+  taskId?: BackendId
+  taskTag?: string
+  torrentHash?: string
+  sourceType?: AdminDownloadSourceType
+  sourceName?: string
+  folderConfigId?: BackendId
+  folderConfigName?: string
+  savePath?: string
+  category?: string
+  qbtState?: string
+  status?: AdminDownloadTaskStatus
+  progress?: number
+  downloadedBytes?: number
+  totalBytes?: number
+  downloadSpeed?: number
+  etaSeconds?: number
+  errorMessage?: string
+  autoImportStatus?: AdminDownloadAutoImportStatus
+  autoImportMessage?: string
+  lastSyncedAt?: string
+  createTime?: string
+  updateTime?: string
+}
+
+export interface AdminDownloadStatus {
+  connected?: boolean
+  message?: string
+  version?: string
+  defaultCategory?: string
+  defaultSavePath?: string
+  pollIntervalSeconds?: number
+  lastCheckedAt?: string
+}
+
 export const adminApi = {
   getUsersPage(params?: {
     pageNum?: number
@@ -242,6 +287,48 @@ export const adminApi = {
 
   getTranscodeTaskDetail(taskId: number | string): Promise<AdminTranscodeTaskDetail> {
     return apiRequest.get<AdminTranscodeTaskDetail>(`/api/admin/transcode/tasks/${taskId}`)
+  },
+
+  createDownloadMagnetTask(payload: AdminCreateDownloadMagnetTaskPayload): Promise<AdminDownloadTask> {
+    return apiRequest.post<AdminDownloadTask>('/api/admin/download/tasks/magnet', payload)
+  },
+
+  createDownloadTorrentTask(file: File, folderConfigId: BackendId, addPaused?: boolean): Promise<AdminDownloadTask> {
+    const formData = new FormData()
+    formData.append('torrentFile', file)
+    formData.append('folderConfigId', String(folderConfigId))
+    formData.append('addPaused', String(Boolean(addPaused)))
+    return apiRequest.upload<AdminDownloadTask>('/api/admin/download/tasks/torrent', formData)
+  },
+
+  getDownloadTasks(): Promise<AdminDownloadTask[]> {
+    return apiRequest.get<AdminDownloadTask[]>('/api/admin/download/tasks')
+  },
+
+  getDownloadTaskDetail(taskId: number | string): Promise<AdminDownloadTask> {
+    return apiRequest.get<AdminDownloadTask>(`/api/admin/download/tasks/${taskId}`)
+  },
+
+  pauseDownloadTask(taskId: number | string): Promise<void> {
+    return apiRequest.post<void>(`/api/admin/download/tasks/${taskId}/pause`)
+  },
+
+  resumeDownloadTask(taskId: number | string): Promise<void> {
+    return apiRequest.post<void>(`/api/admin/download/tasks/${taskId}/resume`)
+  },
+
+  deleteDownloadTask(taskId: number | string, deleteFiles = false): Promise<void> {
+    return apiRequest.delete<void>(`/api/admin/download/tasks/${taskId}`, {
+      params: { deleteFiles }
+    })
+  },
+
+  retryDownloadTaskImport(taskId: number | string): Promise<AdminDownloadTask> {
+    return apiRequest.post<AdminDownloadTask>(`/api/admin/download/tasks/${taskId}/retry-import`)
+  },
+
+  getDownloadStatus(): Promise<AdminDownloadStatus> {
+    return apiRequest.get<AdminDownloadStatus>('/api/admin/download/status')
   },
 
   getDictPage(params?: {

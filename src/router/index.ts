@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { createDiscreteApi } from 'naive-ui'
 import { useUserStore } from '@/store/user'
 import type { RouteRecordRaw } from 'vue-router'
@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
     name: 'adminTranscodeTasks',
     component: () => import('@/views/AdminTranscodeTasksView.vue'),
     meta: { title: '转换任务', requiresAuth: true, allowedRoles: ['admin', 'manage'] }
+  },
+  {
+    path: '/admin/download-tasks',
+    name: 'adminDownloadTasks',
+    component: () => import('@/views/AdminDownloadTasksView.vue'),
+    meta: { title: '下载管理', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/admin/dict',
